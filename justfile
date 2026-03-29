@@ -26,5 +26,8 @@ bench:
 clean:
     cargo clean
 
-generate_onnx:
+run:
+    cargo run --bin run_onnx_v2 --profile release
+
+setup:
     uv run py-yolo/export_onnx.py
