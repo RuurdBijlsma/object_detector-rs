@@ -43,29 +43,58 @@ impl YOLO26Predictor {
         })
     }
 
-    fn preprocess(&self, img: &DynamicImage) -> (Array4<f32>, PreprocessMeta) {
+    /// Replicates the Python standalone letterbox logic exactly
+    fn preprocess(&self, img: &DynamicImage, debug_name: Option<&str>) -> Result<(Array4<f32>, PreprocessMeta)> {
         let (w0, h0) = img.dimensions();
+
+        // 1. Calculate scaling ratio (long side = 640)
         let r = self.imgsz as f32 / (w0.max(h0) as f32);
+
+        // 2. Calculate new unpadded dimensions (matches Python's int(round(w0 * r)))
         let new_unpad_w = (w0 as f32 * r).round() as u32;
         let new_unpad_h = (h0 as f32 * r).round() as u32;
 
+        // 3. Calculate rectangular padding (nearest multiple of stride)
         let w_pad = ((new_unpad_w as f32 / self.stride as f32).ceil() * self.stride as f32) as u32;
         let h_pad = ((new_unpad_h as f32 / self.stride as f32).ceil() * self.stride as f32) as u32;
 
+        // 4. Resize - FilterType::Triangle is the closest to OpenCV's INTER_LINEAR
         let resized = img.resize_exact(new_unpad_w, new_unpad_h, FilterType::Triangle);
 
+        // 5. Create Gray Canvas (114)
         let mut canvas = ImageBuffer::from_pixel(w_pad, h_pad, Rgb([114, 114, 114]));
-        let left = (w_pad - new_unpad_w) / 2;
-        let top = (h_pad - new_unpad_h) / 2;
+
+        // Python: top, left = dh // 2, dw // 2
+        let dw = w_pad - new_unpad_w;
+        let dh = h_pad - new_unpad_h;
+        let left = dw / 2;
+        let top = dh / 2;
 
         image::imageops::overlay(&mut canvas, &resized.to_rgb8(), left as i64, top as i64);
 
+        // 6. Normalize and Convert to CHW
+        // Important: Python's BGR-to-RGB conversion is handled by Rust's DynamicImage::open (which is RGB)
         let mut input = Array4::zeros((1, 3, h_pad as usize, w_pad as usize));
         for (x, y, rgb) in canvas.enumerate_pixels() {
             input[[0, 0, y as usize, x as usize]] = (rgb[0] as f32) / 255.0;
             input[[0, 1, y as usize, x as usize]] = (rgb[1] as f32) / 255.0;
             input[[0, 2, y as usize, x as usize]] = (rgb[2] as f32) / 255.0;
         }
+
+        // --- DEBUG VISUALIZATION ---
+        if let Some(name) = debug_name {
+            let mut debug_img = ImageBuffer::new(w_pad, h_pad);
+            for y in 0..h_pad {
+                for x in 0..w_pad {
+                    let r = (input[[0, 0, y as usize, x as usize]] * 255.0) as u8;
+                    let g = (input[[0, 1, y as usize, x as usize]] * 255.0) as u8;
+                    let b = (input[[0, 2, y as usize, x as usize]] * 255.0) as u8;
+                    debug_img.put_pixel(x, y, Rgb([r, g, b]));
+                }
+            }
+            debug_img.save(format!("rust_debug_{}", name))?;
+        }
+        // ---------------------------
 
         let meta = PreprocessMeta {
             ratio: r,
@@ -74,28 +103,21 @@ impl YOLO26Predictor {
             tensor_shape: (w_pad, h_pad),
         };
 
-        (input, meta)
+        Ok((input, meta))
     }
 
-    pub fn predict(
-        &mut self,
-        img_path: impl AsRef<Path>,
-        conf_threshold: f32,
-        iou_threshold: f32,
-    ) -> Result<Vec<Detection>> {
-        let img = image::open(img_path)?;
-        let (input_tensor, meta) = self.preprocess(&img);
+    pub fn predict(&mut self, img_path: impl AsRef<Path>, conf_threshold: f32, iou_threshold: f32) -> Result<Vec<Detection>> {
+        let file_name = img_path.as_ref().file_name().unwrap().to_str().unwrap();
+        let img = image::open(&img_path)?;
+
+        // Pass the filename to save debug image
+        let (input_tensor, meta) = self.preprocess(&img, Some(file_name))?;
 
         let input_value = Value::from_array(input_tensor)?;
-
-        // 1. Run inference
         let outputs = self.session.run(ort::inputs!["images" => input_value])?;
 
-        // 2. Extract and OWN the data immediately to release the borrow on self.session
         let detections_owned = outputs["detections"].try_extract_array::<f32>()?.to_owned();
         let protos_owned = outputs["protos"].try_extract_array::<f32>()?.to_owned();
-
-        // 3. EXPLICITLY drop outputs. This releases &mut self.session
         drop(outputs);
 
         let preds = detections_owned.slice(s![0, .., ..]);
@@ -112,7 +134,6 @@ impl YOLO26Predictor {
             }
         }
 
-        // 4. Call associated functions (Self::...) instead of self.methods
         let kept_indices = Self::nms(&candidates, iou_threshold);
 
         let mut results = Vec::new();
@@ -130,11 +151,7 @@ impl YOLO26Predictor {
                 bbox: [x1, y1, x2, y2],
                 score: *score,
                 class_id: *class_id,
-                tag: self
-                    .vocab
-                    .get(*class_id)
-                    .cloned()
-                    .unwrap_or_else(|| "unknown".to_string()),
+                tag: self.vocab.get(*class_id).cloned().unwrap_or_else(|| "unknown".to_string()),
                 mask: Some(mask),
             });
         }
