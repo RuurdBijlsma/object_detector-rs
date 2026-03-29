@@ -12,7 +12,7 @@ uv run .\py-yolo\export_onnx.py
 Then run:
 
 ```bash
-cargo run --bin run_onnx_v2 --profile release
+cargo run --bin object_detector --profile release
 ```
 
 ### [When using `load-dynamic` feature] ONNX Runtime Library Not Found
