@@ -264,8 +264,8 @@ impl YOLO26Predictor {
 fn main() -> Result<()> {
     color_eyre::install()?;
     let mut predictor = YOLO26Predictor::new(
-        "assets/model/dynamic-onnx/yoloe-26l-seg-pf-dynamic-try-3.onnx",
-        "assets/model/dynamic-onnx/vocabulary-dynamic.json",
+        "assets/model/dynamic-onnx/yoloe-26l-seg-pf.onnx",
+        "assets/model/dynamic-onnx/vocabulary.json",
     )?;
 
     println!("--- YOLO26 Rust v2 ---");

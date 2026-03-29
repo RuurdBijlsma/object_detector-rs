@@ -25,3 +25,6 @@ bench:
 # Clean build artifacts
 clean:
     cargo clean
+
+generate_onnx:
+    uv run py-yolo/export_onnx.py

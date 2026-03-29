@@ -3,3 +3,6 @@
 *.onnx
 *.onnx.data
 *debug*.jpg
+*.pt
+*meta*.json
+*.bin
