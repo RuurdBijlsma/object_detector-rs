@@ -20,6 +20,8 @@ color-eyre = "0.6.5"
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 criterion = { version = "0.8.2", features = ["html_reports"] }
+imageproc = "0.26.1"
+ab_glyph = "0.2"
 
 [features]
 default = ['load-dynamic']
