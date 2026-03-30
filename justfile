@@ -26,10 +26,12 @@ setup:
 # --- Execution:
 
 test:
-    cargo test --profile release
+    cargo test --test regression --profile release -- --nocapture
+
 
 bench:
-    cargo bench
+    cargo bench --features load-dynamic
 
 run:
-    cargo run --bin run_onnx_v2 --profile release
+    cargo run --example visualize_2 --profile release --features load-dynamic
+

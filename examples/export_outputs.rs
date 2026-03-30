@@ -15,17 +15,17 @@ struct SerializableDetection {
 
 #[derive(Serialize)]
 struct MaskStats {
-    width: usize,
-    height: usize,
+    width: u32,
+    height: u32,
     active_pixels: usize,
 }
 
 impl From<Detection> for SerializableDetection {
     fn from(det: Detection) -> Self {
         let mask_stats = det.mask.as_ref().map(|m| MaskStats {
-            width: m.ncols(),
-            height: m.nrows(),
-            active_pixels: m.iter().filter(|&&p| p).count(),
+            width: m.width,
+            height: m.height,
+            active_pixels: m.data.iter().map(|&b| b.count_ones() as usize).sum(),
         });
 
         Self {
@@ -55,9 +55,9 @@ fn main() -> Result<()> {
         if path.extension().map_or(false, |e| e == "jpg" || e == "png") {
             let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
             println!("Processing {file_name}...");
+            let img = image::open(&path)?;
 
-            // Run prediction with fixed thresholds for consistency
-            let results = predictor.predict(&path, 0.4, 0.7)?;
+            let results = predictor.predict(&img, 0.4, 0.7)?;
 
             let serializable: Vec<SerializableDetection> = results
                 .into_iter()

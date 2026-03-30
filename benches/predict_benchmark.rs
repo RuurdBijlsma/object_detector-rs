@@ -1,8 +1,14 @@
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)]
+use criterion::{Criterion, criterion_group, criterion_main};
 use ndarray::s;
 use object_detector::predictor::nms::non_maximum_suppression;
 use object_detector::predictor::yolo_predictor::YOLO26Predictor;
 use ort::value::Value;
+use std::hint::black_box;
 
 #[allow(clippy::too_many_lines)]
 fn benchmark_predict_components(c: &mut Criterion) {
@@ -13,14 +19,6 @@ fn benchmark_predict_components(c: &mut Criterion) {
     let mut predictor =
         YOLO26Predictor::new(model_path, vocab_path).expect("Failed to create predictor");
     let img = image::open(img_path).expect("Failed to open image");
-
-    // 1. image::open
-    c.bench_function("predict_step_1_image_open", |b| {
-        b.iter(|| {
-            let img = image::open(black_box(img_path)).unwrap();
-            black_box(img);
-        });
-    });
 
     // 2. preprocess
     c.bench_function("predict_step_2_preprocess", |b| {
@@ -111,39 +109,32 @@ fn benchmark_predict_components(c: &mut Criterion) {
 
     // 5. process_mask (single call)
     if !kept_indices.is_empty() {
-        let (_bbox, _score, _class_id, weights) = &candidates[kept_indices[0]];
+        let (bbox, _score, _class_id, weights) = &candidates[kept_indices[0]];
+
+        // Prepare original coordinates for the benchmark
+        let x1 = ((bbox[0] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+        let y1 = ((bbox[1] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
+        let x2 = ((bbox[2] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+        let y2 = ((bbox[3] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
+        let sample_final_bbox = [x1, y1, x2, y2];
+
         c.bench_function("predict_step_5_process_mask_single", |b| {
             b.iter(|| {
                 black_box(YOLO26Predictor::process_mask(
                     black_box(&protos_view),
                     black_box(weights),
                     black_box(&meta),
+                    black_box(&sample_final_bbox), // Added new syntax
                 ));
             });
         });
     }
 
-    // 6. store_results loop (after NMS)
-    c.bench_function("predict_step_6_store_results_loop", |b| {
-        b.iter(|| {
-            let mut results = Vec::new();
-            for idx in kept_indices.clone() {
-                let (bbox, score, class_id, weights) = &candidates[idx];
-                let x1 = (bbox[0] - meta.pad.0) / meta.ratio;
-                let y1 = (bbox[1] - meta.pad.1) / meta.ratio;
-                let x2 = (bbox[2] - meta.pad.0) / meta.ratio;
-                let y2 = (bbox[3] - meta.pad.1) / meta.ratio;
-                let mask = YOLO26Predictor::process_mask(&protos_view, weights, &meta);
-                results.push(black_box((x1, y1, x2, y2, *score, *class_id, mask)));
-            }
-            black_box(results);
-        });
-    });
-
+    let img = image::open(img_path).unwrap();
     // 7. Full predict function
     c.bench_function("predict_full", |b| {
         b.iter(|| {
-            predictor.predict(black_box(img_path), 0.4, 0.7).unwrap();
+            predictor.predict(black_box(&img), 0.4, 0.7).unwrap();
         });
     });
 }
