@@ -1,7 +1,6 @@
-use crate::predictor::custom_resize::naive_bilinear_opencv;
 use crate::predictor::nms::non_maximum_suppression;
 use color_eyre::Result;
-use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb};
+use image::{DynamicImage, GenericImageView};
 use ndarray::{s, Array1, Array2, Array4};
 use ort::session::Session;
 use ort::value::Value;
@@ -9,13 +8,46 @@ use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 
+/// A bit-packed mask to save memory (1 bit per pixel).
+/// Reduces memory footprint by 8x compared to Vec<bool>.
+#[derive(Debug, Clone)]
+pub struct Mask {
+    pub width: u32,
+    pub height: u32,
+    pub data: Vec<u8>,
+}
+
+impl Mask {
+    #[must_use]
+    pub fn get(&self, x: u32, y: u32) -> bool {
+        let bit_idx = (y * self.width + x) as usize;
+        let byte_idx = bit_idx >> 3;
+        let bit_offset = bit_idx & 7;
+        (self.data[byte_idx] & (1 << bit_offset)) != 0
+    }
+
+    /// Converts back to Array2<bool> if needed for compatibility.
+    #[must_use]
+    pub fn to_array2(&self) -> Array2<bool> {
+        let mut arr = Array2::from_elem((self.height as usize, self.width as usize), false);
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if self.get(x, y) {
+                    arr[[y as usize, x as usize]] = true;
+                }
+            }
+        }
+        arr
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Detection {
     pub bbox: [f32; 4],
     pub score: f32,
     pub class_id: usize,
     pub tag: String,
-    pub mask: Option<Array2<bool>>,
+    pub mask: Option<Mask>,
 }
 
 pub struct PreprocessMeta {
@@ -23,6 +55,19 @@ pub struct PreprocessMeta {
     pub pad: (f32, f32),
     pub orig_shape: (u32, u32),
     pub tensor_shape: (u32, u32),
+}
+
+/// Helper to wrap raw pointer for parallel tensor filling.
+#[derive(Copy, Clone)]
+struct SendPtr(*mut f32);
+unsafe impl Send for SendPtr {}
+unsafe impl Sync for SendPtr {}
+
+impl SendPtr {
+    #[inline]
+    unsafe fn write(&self, offset: usize, val: f32) {
+        *self.0.add(offset) = val;
+    }
 }
 
 pub struct YOLO26Predictor {
@@ -50,6 +95,8 @@ impl YOLO26Predictor {
         })
     }
 
+    /// Optimized One-Pass Preprocessing.
+    /// Resizes, Pads, Normalizes, and Transposes (HWC -> CHW) in a single parallel pass.
     #[must_use]
     pub fn preprocess(&self, img: &DynamicImage) -> (Array4<f32>, PreprocessMeta) {
         let (w0, h0) = img.dimensions();
@@ -60,23 +107,72 @@ impl YOLO26Predictor {
         let w_pad = ((new_unpad_w as f32 / self.stride as f32).ceil() * self.stride as f32) as u32;
         let h_pad = ((new_unpad_h as f32 / self.stride as f32).ceil() * self.stride as f32) as u32;
 
-        let resized = naive_bilinear_opencv(&img.to_rgb8(), new_unpad_w, new_unpad_h);
-
-        let mut canvas = ImageBuffer::from_pixel(w_pad, h_pad, Rgb([114, 114, 114]));
         let left = (w_pad - new_unpad_w) / 2;
         let top = (h_pad - new_unpad_h) / 2;
-        image::imageops::overlay(&mut canvas, &resized, i64::from(left), i64::from(top));
 
-        let mut input = Array4::zeros((1, 3, h_pad as usize, w_pad as usize));
-        let flat_raw = canvas.as_raw();
+        // Initialize tensor with gray padding (114 / 255)
+        let mut input = Array4::from_elem((1, 3, h_pad as usize, w_pad as usize), 114.0 / 255.0);
+
+        let img_rgb = img.to_rgb8();
+        let (src_w, src_h) = img_rgb.dimensions();
+        let src_raw = img_rgb.as_raw();
+
+        let scale_x = src_w as f32 / new_unpad_w as f32;
+        let scale_y = src_h as f32 / new_unpad_h as f32;
         let channel_size = (h_pad * w_pad) as usize;
 
-        let data = input.as_slice_mut().unwrap();
-        for (i, rgb) in flat_raw.chunks_exact(3).enumerate() {
-            data[i] = f32::from(rgb[0]) / 255.0;
-            data[i + channel_size] = f32::from(rgb[1]) / 255.0;
-            data[i + 2 * channel_size] = f32::from(rgb[2]) / 255.0;
-        }
+        // Wrap the raw pointer to allow sharing across Rayon threads
+        let data_ptr = SendPtr(input.as_slice_mut().unwrap().as_mut_ptr());
+
+        // Parallelize over the rows of the image content area
+        (0..new_unpad_h).into_par_iter().for_each(move |y| {
+            let source_y = (y as f32 + 0.5).mul_add(scale_y, -0.5);
+            let y1 = source_y.floor() as i32;
+            let dy = source_y - y1 as f32;
+            let y1_u = y1.clamp(0, src_h as i32 - 1) as u32;
+            let y2_u = (y1 + 1).clamp(0, src_h as i32 - 1) as u32;
+            let inv_dy = 1.0 - dy;
+
+            let out_row_offset = (y + top) as usize * w_pad as usize + left as usize;
+
+            for x in 0..new_unpad_w {
+                let source_x = (x as f32 + 0.5).mul_add(scale_x, -0.5);
+                let x1 = source_x.floor() as i32;
+                let dx = source_x - x1 as f32;
+                let x1_u = x1.clamp(0, src_w as i32 - 1) as u32;
+                let x2_u = (x1 + 1).clamp(0, src_w as i32 - 1) as u32;
+                let inv_dx = 1.0 - dx;
+
+                // Indexing for OpenCV-style bilinear sampling
+                let get_pix = |px: u32, py: u32| {
+                    let idx = (py * src_w + px) as usize * 3;
+                    [src_raw[idx], src_raw[idx+1], src_raw[idx+2]]
+                };
+
+                let p11 = get_pix(x1_u, y1_u);
+                let p21 = get_pix(x2_u, y1_u);
+                let p12 = get_pix(x1_u, y2_u);
+                let p22 = get_pix(x2_u, y2_u);
+
+                let out_idx = out_row_offset + x as usize;
+
+                for c in 0..3 {
+                    let val = (f32::from(p22[c]) * dx).mul_add(
+                        dy,
+                        (f32::from(p12[c]) * inv_dx).mul_add(
+                            dy,
+                            (f32::from(p11[c]) * inv_dx)
+                                .mul_add(inv_dy, f32::from(p21[c]) * dx * inv_dy),
+                        ),
+                    );
+
+                    // Direct write to the CHW tensor
+                    unsafe {
+                        data_ptr.write(out_idx + c * channel_size, (val + 0.5).floor() / 255.0);
+                    }
+                }
+            }
+        });
 
         (
             input,
@@ -89,87 +185,82 @@ impl YOLO26Predictor {
         )
     }
 
+    /// Optimized Mask Generation.
+    /// Uses pre-calculated X-mappings and bit-packing for performance.
     pub fn process_mask(
         protos: &ndarray::ArrayView3<f32>,
         weights: &Array1<f32>,
         meta: &PreprocessMeta,
         bbox: &[f32; 4],
-    ) -> Array2<bool> {
+    ) -> Mask {
         let (mask_c, mask_h, mask_w) = protos.dim();
-
-        // 1. Compute the raw mask (logits) at the prototype resolution (usually 160x160)
-        // This is a single matrix-vector multiplication.
         let protos_flat = protos.view().into_shape_with_order((mask_c, mask_h * mask_w)).unwrap();
         let mask_logits_flat = weights.dot(&protos_flat);
         let mask_logits = mask_logits_flat.to_shape((mask_h, mask_w)).unwrap();
 
         let [x1, y1, x2, y2] = *bbox;
-        let img_w = meta.orig_shape.0 as usize;
-        let img_h = meta.orig_shape.1 as usize;
+        let (img_w, img_h) = meta.orig_shape;
 
-        // 2. Pre-calculate coordinate transformation constants
-        // We need to map (x_img, y_img) -> (x_tensor) -> (x_mask_proto)
-        let gain = meta.ratio;
-        let (pad_x, pad_y) = meta.pad;
+        let x_map_factor = meta.ratio * (mask_w as f32 / meta.tensor_shape.0 as f32);
+        let y_map_factor = meta.ratio * (mask_h as f32 / meta.tensor_shape.1 as f32);
+        let x_offset = meta.pad.0 * (mask_w as f32 / meta.tensor_shape.0 as f32);
+        let y_offset = meta.pad.1 * (mask_h as f32 / meta.tensor_shape.1 as f32);
 
-        // Scaling factor from original image pixels to mask prototype pixels
-        // mask_proto is usually 1/4 of the tensor size (e.g. 160 vs 640)
-        let x_map_factor = gain * (mask_w as f32 / meta.tensor_shape.0 as f32);
-        let y_map_factor = gain * (mask_h as f32 / meta.tensor_shape.1 as f32);
-        let x_offset = pad_x * (mask_w as f32 / meta.tensor_shape.0 as f32);
-        let y_offset = pad_y * (mask_h as f32 / meta.tensor_shape.1 as f32);
+        let ix1 = (x1.floor() as u32).clamp(0, img_w);
+        let iy1 = (y1.floor() as u32).clamp(0, img_h);
+        let ix2 = (x2.ceil() as u32).clamp(0, img_w);
+        let iy2 = (y2.ceil() as u32).clamp(0, img_h);
 
-        // 3. Generate the boolean mask only for the bounding box area
-        // We initialize with false and only fill the BBox rectangle.
-        let mut final_mask = Array2::from_elem((img_h, img_w), false);
+        // Pre-calculate X mappings for the width of the bbox
+        let x_coords: Vec<_> = (ix1..ix2).map(|x| {
+            let mx = (x as f32).mul_add(x_map_factor, x_offset);
+            let mx_f = mx.floor() as usize;
+            let mx_c = (mx_f + 1).min(mask_w - 1);
+            let dx = mx - mx_f as f32;
+            (mx_f, mx_c, dx)
+        }).collect();
 
-        let ix1 = (x1.floor() as usize).clamp(0, img_w);
-        let iy1 = (y1.floor() as usize).clamp(0, img_h);
-        let ix2 = (x2.ceil() as usize).clamp(0, img_w);
-        let iy2 = (y2.ceil() as usize).clamp(0, img_h);
+        let mut data = vec![0u8; (img_w as usize * img_h as usize + 7) / 8];
 
         for y in iy1..iy2 {
-            // Map image y to mask prototype y
             let my = (y as f32).mul_add(y_map_factor, y_offset);
             if my < 0.0 || my >= (mask_h as f32 - 1.0) { continue; }
 
             let my_f = my.floor() as usize;
             let my_c = (my_f + 1).min(mask_h - 1);
             let dy = my - my_f as f32;
+            let inv_dy = 1.0 - dy;
 
-            for x in ix1..ix2 {
-                let mx = (x as f32).mul_add(x_map_factor, x_offset);
-                if mx < 0.0 || mx >= (mask_w as f32 - 1.0) { continue; }
+            let row_base = (y * img_w) as usize;
 
-                let mx_f = mx.floor() as usize;
-                let mx_c = (mx_f + 1).min(mask_w - 1);
-                let dx = mx - mx_f as f32;
+            for (i, &(mx_f, mx_c, dx)) in x_coords.iter().enumerate() {
+                let x = ix1 as usize + i;
+                let inv_dx = 1.0 - dx;
 
-                // Bilinear sampling of the logit
-                let val = (1.0 - dx).mul_add(
-                    (1.0 - dy).mul_add(mask_logits[[my_f, mx_f]], dy * mask_logits[[my_c, mx_f]]),
-                    dx * (1.0 - dy).mul_add(mask_logits[[my_f, mx_c]], dy * mask_logits[[my_c, mx_c]])
+                // Bilinear sample the logit
+                let val = inv_dx.mul_add(
+                    inv_dy.mul_add(mask_logits[[my_f, mx_f]], dy * mask_logits[[my_c, mx_f]]),
+                    dx * inv_dy.mul_add(mask_logits[[my_f, mx_c]], dy * mask_logits[[my_c, mx_c]])
                 );
 
-                // Sigmoid(val) > 0.5  is equivalent to  val > 0.0
+                // threshold 0.0 is equivalent to Sigmoid(x) > 0.5
                 if val > 0.0 {
-                    final_mask[[y, x]] = true;
+                    let bit_idx = row_base + x;
+                    data[bit_idx >> 3] |= 1 << (bit_idx & 7);
                 }
             }
         }
 
-        final_mask
+        Mask { width: img_w, height: img_h, data }
     }
-
 
     pub fn predict(
         &mut self,
-        img_path: impl AsRef<Path>,
+        img: &DynamicImage,
         conf: f32,
         iou: f32,
     ) -> Result<Vec<Detection>> {
-        let img = image::open(img_path)?;
-        let (input_tensor, meta) = self.preprocess(&img);
+        let (input_tensor, meta) = self.preprocess(img);
 
         let (preds, protos) = {
             let outputs = self

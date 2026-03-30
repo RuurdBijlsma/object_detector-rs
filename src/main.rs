@@ -12,17 +12,21 @@ fn main() -> Result<()> {
         "assets/model/vocabulary.json",
     )?;
 
-    println!("--- YOLO26 Rust v2 ---");
+    println!("--- YOLO26 Rust Optimized ---");
     let img_dir = Path::new("assets/img");
     for entry in fs::read_dir(img_dir)? {
         let path = entry?.path();
         if path.extension().map_or(false, |e| e == "jpg" || e == "png") {
+            let img = image::open(&path)?;
+
             let start = Instant::now();
-            let results = predictor.predict(&path, 0.4, 0.7)?;
+            let results = predictor.predict(&img, 0.4, 0.7)?;
+
             let tags = results
                 .iter()
                 .map(|r| r.tag.clone())
                 .collect::<HashSet<_>>();
+
             println!(
                 "Image: {} ({:?}) - Objects: {:?}",
                 path.file_name().unwrap().to_string_lossy(),

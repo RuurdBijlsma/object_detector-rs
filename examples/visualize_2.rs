@@ -36,7 +36,8 @@ fn main() -> Result<()> {
 
         println!("  Detecting: {}", path.file_name().unwrap().to_string_lossy());
 
-        let mut results = predictor.predict(&path, 0.4, 0.5)?;
+        let img = image::open(&path)?;
+        let mut results = predictor.predict(&img, 0.4, 0.5)?;
 
         // --- SORT BY AREA DESCENDING ---
         // This ensures large masks (Fridge) are drawn first,
@@ -117,14 +118,13 @@ fn get_color(class_id: usize) -> Rgba<u8> {
     Rgba([c[0], c[1], c[2], 255])
 }
 
-fn apply_mask(img: &mut RgbaImage, mask: &ndarray::Array2<bool>, color: Rgba<u8>) {
-    let (h, w) = mask.dim();
+fn apply_mask(img: &mut RgbaImage, mask: &object_detector::Mask, color: Rgba<u8>) {
     let (img_w, img_h) = img.dimensions();
 
-    for y in 0..h.min(img_h as usize) {
-        for x in 0..w.min(img_w as usize) {
-            if mask[[y, x]] {
-                let pixel = img.get_pixel_mut(x as u32, y as u32);
+    for y in 0..mask.height.min(img_h) {
+        for x in 0..mask.width.min(img_w) {
+            if mask.get(x, y) {
+                let pixel = img.get_pixel_mut(x, y);
                 pixel[0] = ((u32::from(pixel[0]) + u32::from(color[0])) / 2) as u8;
                 pixel[1] = ((u32::from(pixel[1]) + u32::from(color[1])) / 2) as u8;
                 pixel[2] = ((u32::from(pixel[2]) + u32::from(color[2])) / 2) as u8;

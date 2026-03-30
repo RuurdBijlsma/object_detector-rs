@@ -133,10 +133,11 @@ fn benchmark_predict_components(c: &mut Criterion) {
         });
     }
 
+    let img = image::open(img_path).unwrap();
     // 7. Full predict function
     c.bench_function("predict_full", |b| {
         b.iter(|| {
-            predictor.predict(black_box(img_path), 0.4, 0.7).unwrap();
+            predictor.predict(black_box(&img), 0.4, 0.7).unwrap();
         });
     });
 }
