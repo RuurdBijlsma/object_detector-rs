@@ -8,7 +8,6 @@ use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 
-/// A bit-packed mask to save memory (1 bit per pixel).
 #[derive(Debug, Clone)]
 pub struct Mask {
     pub width: u32,
