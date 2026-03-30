@@ -112,13 +112,22 @@ fn benchmark_predict_components(c: &mut Criterion) {
 
     // 5. process_mask (single call)
     if !kept_indices.is_empty() {
-        let (_bbox, _score, _class_id, weights) = &candidates[kept_indices[0]];
+        let (bbox, _score, _class_id, weights) = &candidates[kept_indices[0]];
+
+        // Prepare original coordinates for the benchmark
+        let x1 = ((bbox[0] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+        let y1 = ((bbox[1] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
+        let x2 = ((bbox[2] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+        let y2 = ((bbox[3] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
+        let sample_final_bbox = [x1, y1, x2, y2];
+
         c.bench_function("predict_step_5_process_mask_single", |b| {
             b.iter(|| {
                 black_box(YOLO26Predictor::process_mask(
                     black_box(&protos_view),
                     black_box(weights),
                     black_box(&meta),
+                    black_box(&sample_final_bbox), // Added new syntax
                 ));
             });
         });
@@ -130,12 +139,13 @@ fn benchmark_predict_components(c: &mut Criterion) {
             let mut results = Vec::new();
             for idx in kept_indices.clone() {
                 let (bbox, score, class_id, weights) = &candidates[idx];
-                let x1 = (bbox[0] - meta.pad.0) / meta.ratio;
-                let y1 = (bbox[1] - meta.pad.1) / meta.ratio;
-                let x2 = (bbox[2] - meta.pad.0) / meta.ratio;
-                let y2 = (bbox[3] - meta.pad.1) / meta.ratio;
-                let mask = YOLO26Predictor::process_mask(&protos_view, weights, &meta);
-                results.push(black_box((x1, y1, x2, y2, *score, *class_id, mask)));
+                let x1 = ((bbox[0] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+                let y1 = ((bbox[1] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
+                let x2 = ((bbox[2] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+                let y2 = ((bbox[3] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
+                let final_bbox = [x1, y1, x2, y2];
+                let mask = YOLO26Predictor::process_mask(&protos_view, weights, &meta, &final_bbox);
+                results.push(black_box((final_bbox, *score, *class_id, mask)));
             }
             black_box(results);
         });

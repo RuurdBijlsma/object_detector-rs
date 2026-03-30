@@ -8,7 +8,6 @@ use ort::value::Value;
 use std::fs;
 use std::path::Path;
 
-
 #[derive(Debug, Clone)]
 pub struct Detection {
     pub bbox: [f32; 4],
@@ -87,11 +86,11 @@ impl YOLO26Predictor {
         )
     }
 
-    #[must_use]
     pub fn process_mask(
         protos: &ndarray::ArrayView3<f32>,
         weights: &Array1<f32>,
         meta: &PreprocessMeta,
+        bbox: &[f32; 4],
     ) -> Array2<bool> {
         let (c, h, w) = protos.dim();
         let mut mask_flat = Array2::<f32>::zeros((h, w));
@@ -104,22 +103,33 @@ impl YOLO26Predictor {
             image::Luma([(mask_sigmoid[[y as usize, x as usize]] * 255.0) as u8])
         });
 
+        // Upscale to the padded tensor size
         let upscaled = DynamicImage::ImageLuma8(mask_img).resize_exact(
             meta.tensor_shape.0,
             meta.tensor_shape.1,
             FilterType::Triangle,
         );
 
+        // Crop the padding out to get to the "unpadded" resized image
         let crop_w = (meta.orig_shape.0 as f32 * meta.ratio).round() as u32;
         let crop_h = (meta.orig_shape.1 as f32 * meta.ratio).round() as u32;
+
         let final_mask = upscaled
             .crop_imm(meta.pad.0 as u32, meta.pad.1 as u32, crop_w, crop_h)
             .resize_exact(meta.orig_shape.0, meta.orig_shape.1, FilterType::Triangle)
             .to_luma8();
 
+        // Create the boolean mask AND apply the bounding box constraint
+        let [x1, y1, x2, y2] = *bbox;
+
         Array2::from_shape_fn(
             (meta.orig_shape.1 as usize, meta.orig_shape.0 as usize),
-            |(y, x)| final_mask.get_pixel(x as u32, y as u32)[0] > 127,
+            |(y, x)| {
+                let val = final_mask.get_pixel(x as u32, y as u32)[0];
+                let is_in_box =
+                    x as f32 >= x1 && x as f32 <= x2 && y as f32 >= y1 && y as f32 <= y2;
+                val > 127 && is_in_box // Only true if sigmoid > 0.5 AND inside BBox
+            },
         )
     }
 
@@ -166,15 +176,16 @@ impl YOLO26Predictor {
         for idx in kept_indices {
             let (bbox, score, class_id, weights) = &candidates[idx];
 
-            let x1 = (bbox[0] - meta.pad.0) / meta.ratio;
-            let y1 = (bbox[1] - meta.pad.1) / meta.ratio;
-            let x2 = (bbox[2] - meta.pad.0) / meta.ratio;
-            let y2 = (bbox[3] - meta.pad.1) / meta.ratio;
+            let x1 = ((bbox[0] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+            let y1 = ((bbox[1] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
+            let x2 = ((bbox[2] - meta.pad.0) / meta.ratio).clamp(0.0, meta.orig_shape.0 as f32);
+            let y2 = ((bbox[3] - meta.pad.1) / meta.ratio).clamp(0.0, meta.orig_shape.1 as f32);
 
-            let mask = Self::process_mask(&protos_view, weights, &meta);
+            let final_bbox = [x1, y1, x2, y2];
+            let mask = Self::process_mask(&protos_view, weights, &meta, &final_bbox);
 
             results.push(Detection {
-                bbox: [x1, y1, x2, y2],
+                bbox: final_bbox,
                 score: *score,
                 class_id: *class_id,
                 tag: self

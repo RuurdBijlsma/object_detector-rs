@@ -12,7 +12,7 @@
       "mask_stats": {
         "width": 4608,
         "height": 2592,
-        "active_pixels": 2854286
+        "active_pixels": 2366780
       }
     }
   ],
@@ -29,7 +29,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 2318922
+        "active_pixels": 588265
       }
     },
     {
@@ -44,7 +44,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3192868
+        "active_pixels": 671512
       }
     },
     {
@@ -59,7 +59,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3045607
+        "active_pixels": 1226183
       }
     },
     {
@@ -74,7 +74,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3462639
+        "active_pixels": 2576142
       }
     },
     {
@@ -89,7 +89,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 652462
+        "active_pixels": 194212
       }
     },
     {
@@ -104,7 +104,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 498510
+        "active_pixels": 35387
       }
     }
   ],
@@ -121,7 +121,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 1269192
+        "active_pixels": 730745
       }
     },
     {
@@ -136,7 +136,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 646268
+        "active_pixels": 383249
       }
     },
     {
@@ -151,7 +151,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 1159047
+        "active_pixels": 144735
       }
     },
     {
@@ -159,14 +159,14 @@
       "score": 0.6260698,
       "bbox": [
         0.93078226,
-        -2.9268212,
+        0.0,
         1301.8809,
         317.93097
       ],
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 516574
+        "active_pixels": 206973
       }
     },
     {
@@ -174,29 +174,29 @@
       "score": 0.54402095,
       "bbox": [
         43.245975,
-        -0.3324188,
-        4033.9436,
-        2289.5046
+        0.0,
+        4032.0,
+        2268.0
       ],
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 4405860
+        "active_pixels": 4347092
       }
     },
     {
       "tag": "keyboard",
       "score": 0.5042609,
       "bbox": [
-        -1.2170105,
-        -9.990349,
+        0.0,
+        0.0,
         3050.3315,
         956.39014
       ],
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 1436302
+        "active_pixels": 1299218
       }
     },
     {
@@ -211,7 +211,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 2048546
+        "active_pixels": 2028513
       }
     },
     {
@@ -226,7 +226,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 1257579
+        "active_pixels": 199041
       }
     }
   ],
@@ -243,7 +243,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3471429
+        "active_pixels": 403527
       }
     },
     {
@@ -258,7 +258,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3716531
+        "active_pixels": 338068
       }
     },
     {
@@ -273,7 +273,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3481613
+        "active_pixels": 283552
       }
     },
     {
@@ -288,7 +288,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3747719
+        "active_pixels": 305255
       }
     },
     {
@@ -303,7 +303,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3588453
+        "active_pixels": 334656
       }
     },
     {
@@ -318,7 +318,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3560476
+        "active_pixels": 436969
       }
     },
     {
@@ -333,7 +333,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3846150
+        "active_pixels": 252021
       }
     },
     {
@@ -348,7 +348,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3487346
+        "active_pixels": 296953
       }
     },
     {
@@ -358,12 +358,12 @@
         63.729244,
         6.5378265,
         3285.929,
-        2332.0994
+        2268.0
       ],
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 7548593
+        "active_pixels": 6609847
       }
     },
     {
@@ -378,7 +378,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 3415563
+        "active_pixels": 267057
       }
     }
   ],
@@ -389,13 +389,13 @@
       "bbox": [
         150.6234,
         544.3577,
-        2307.834,
+        2268.0,
         2014.9271
       ],
       "mask_stats": {
         "width": 2268,
         "height": 4032,
-        "active_pixels": 1224985
+        "active_pixels": 857548
       }
     },
     {
@@ -404,13 +404,13 @@
       "bbox": [
         913.65515,
         2467.5999,
-        2268.2524,
-        4033.5095
+        2268.0,
+        4032.0
       ],
       "mask_stats": {
         "width": 2268,
         "height": 4032,
-        "active_pixels": 706179
+        "active_pixels": 671035
       }
     },
     {
@@ -425,7 +425,7 @@
       "mask_stats": {
         "width": 2268,
         "height": 4032,
-        "active_pixels": 535074
+        "active_pixels": 257644
       }
     },
     {
@@ -433,14 +433,14 @@
       "score": 0.5532182,
       "bbox": [
         1001.0924,
-        -0.09689941,
+        0.0,
         2252.2515,
         2632.484
       ],
       "mask_stats": {
         "width": 2268,
         "height": 4032,
-        "active_pixels": 1276725
+        "active_pixels": 748377
       }
     },
     {
@@ -448,14 +448,14 @@
       "score": 0.53990394,
       "bbox": [
         1004.68713,
-        -12.232349,
+        0.0,
         1457.9789,
         2140.335
       ],
       "mask_stats": {
         "width": 2268,
         "height": 4032,
-        "active_pixels": 597264
+        "active_pixels": 188865
       }
     }
   ],
@@ -472,7 +472,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 894789
+        "active_pixels": 107743
       }
     },
     {
@@ -487,7 +487,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 924294
+        "active_pixels": 46907
       }
     },
     {
@@ -502,7 +502,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 635598
+        "active_pixels": 261846
       }
     },
     {
@@ -517,22 +517,22 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 335230
+        "active_pixels": 16129
       }
     },
     {
       "tag": "autumn forest",
       "score": 0.6239065,
       "bbox": [
-        -0.8040344,
-        -8.90023,
+        0.0,
+        0.0,
         4011.872,
         1513.7782
       ],
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 8109079
+        "active_pixels": 5788137
       }
     },
     {
@@ -547,7 +547,7 @@
       "mask_stats": {
         "width": 4032,
         "height": 2268,
-        "active_pixels": 813340
+        "active_pixels": 81740
       }
     }
   ],
@@ -564,7 +564,7 @@
       "mask_stats": {
         "width": 1944,
         "height": 2592,
-        "active_pixels": 423062
+        "active_pixels": 9174
       }
     },
     {
@@ -579,7 +579,7 @@
       "mask_stats": {
         "width": 1944,
         "height": 2592,
-        "active_pixels": 591148
+        "active_pixels": 267018
       }
     },
     {
@@ -594,7 +594,7 @@
       "mask_stats": {
         "width": 1944,
         "height": 2592,
-        "active_pixels": 573321
+        "active_pixels": 3372
       }
     },
     {
@@ -603,13 +603,13 @@
       "bbox": [
         1706.3896,
         1054.5464,
-        1944.2433,
+        1944.0,
         1970.7798
       ],
       "mask_stats": {
         "width": 1944,
         "height": 2592,
-        "active_pixels": 445065
+        "active_pixels": 115467
       }
     },
     {
@@ -624,7 +624,7 @@
       "mask_stats": {
         "width": 1944,
         "height": 2592,
-        "active_pixels": 577323
+        "active_pixels": 4286
       }
     },
     {
@@ -639,7 +639,7 @@
       "mask_stats": {
         "width": 1944,
         "height": 2592,
-        "active_pixels": 453081
+        "active_pixels": 39916
       }
     }
   ]
