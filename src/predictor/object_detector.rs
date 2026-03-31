@@ -268,8 +268,8 @@ impl ObjectDetector {
     pub fn predict(
         &mut self,
         #[builder(start_fn)] img: &DynamicImage,
-        #[builder(default = 0.4)] conf: f32,
-        #[builder(default = 0.7)] iou: f32,
+        #[builder(default = 0.4)] confidence_threshold: f32,
+        #[builder(default = 0.7)] intersection_over_curve: f32,
     ) -> Result<Vec<ObjectDetection>, ObjectDetectorError> {
         let (input_tensor, meta) = self.preprocess(img);
         let outputs = self
@@ -290,7 +290,7 @@ impl ObjectDetector {
 
         for i in 0..preds_view.shape()[0] {
             let score = preds_view[[i, 4]];
-            if score > conf {
+            if score > confidence_threshold {
                 candidate_boxes.push(ObjectBBox {
                     x1: preds_view[[i, 0]],
                     y1: preds_view[[i, 1]],
@@ -305,7 +305,7 @@ impl ObjectDetector {
             }
         }
 
-        let kept = non_maximum_suppression(&candidate_boxes, &candidate_scores, iou);
+        let kept = non_maximum_suppression(&candidate_boxes, &candidate_scores, intersection_over_curve);
 
         Ok(kept
             .into_par_iter()
