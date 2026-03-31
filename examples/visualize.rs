@@ -8,6 +8,7 @@ use imageproc::rect::Rect;
 use object_detector::{ObjectDetector, ObjectMask};
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -25,11 +26,13 @@ fn main() -> Result<()> {
 
     for entry in fs::read_dir("assets/img")? {
         let path = entry?.path();
-        println!("Detecting objects: {}", path.display());
-
         let file_stem = path.file_stem().unwrap().to_string_lossy();
+
         let img = image::open(&path)?;
+        let now = Instant::now();
         let results = predictor.predict(&img).call()?;
+        println!("Detected objects [{:?}]: {}", now.elapsed(),path.display());
+
         let base_rgba = img.to_rgba8();
 
         for (idx, det) in results.into_iter().enumerate() {

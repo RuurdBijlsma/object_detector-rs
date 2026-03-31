@@ -10,8 +10,10 @@ use image::{Rgba, RgbaImage};
 use imageproc::drawing::{draw_filled_rect_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
 use object_detector::{ObjectDetector, ObjectMask};
+use ort::ep::CUDA;
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -20,6 +22,7 @@ fn main() -> Result<()> {
         "assets/model/yoloe-26l-seg-pf.onnx",
         "assets/model/vocabulary.json",
     )
+    .with_execution_providers(&[CUDA::default().build()])
     .build()?;
 
     let output_dir = Path::new("output/joined_visualization");
@@ -29,10 +32,11 @@ fn main() -> Result<()> {
 
     for entry in fs::read_dir("assets/img")? {
         let path = entry?.path();
-        println!("Detecting objects: {}", path.display());
 
         let img = image::open(&path)?;
+        let now = Instant::now();
         let mut results = predictor.predict(&img).call()?;
+        println!("Detected objects [{:?}]: {}", now.elapsed(), path.display());
 
         // Sort by area using struct fields
         results.sort_by(|a, b| {
