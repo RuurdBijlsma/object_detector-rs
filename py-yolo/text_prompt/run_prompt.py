@@ -30,8 +30,7 @@ def run_yoloe_text_visualization():
     model = YOLOE(model_name)
 
     # 2. Define Custom Vocabulary
-    # Tip: Try adding more descriptive words if 'flat' is too vague
-    custom_classes = ["cat", "car", "van", "sign", "person"]
+    custom_classes = ["cat", "car", "van", "sign", "person", "lamp", "watermelon"]
     print(f"--- Vocabulary Set: {custom_classes} ---")
     model.set_classes(custom_classes)
 
