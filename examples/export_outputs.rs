@@ -42,7 +42,7 @@ fn main() -> Result<()> {
 
     let mut predictor = ObjectDetector::builder(
         "assets/model/yoloe-26l-seg-pf.onnx",
-        "assets/model/vocabulary.json",
+        "assets/model/vocabulary_4585.json",
     )
     .build()?;
 

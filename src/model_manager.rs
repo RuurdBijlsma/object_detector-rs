@@ -34,7 +34,7 @@ impl HfModel {
     pub fn default_vocabulary() -> Self {
         Self {
             id: Self::DEFAULT_REPO_ID.to_owned(),
-            file: "vocabulary.json".to_owned(),
+            file: "vocabulary_4585.json".to_owned(),
         }
     }
 }
