@@ -14,3 +14,4 @@
 * thiserror error handling
 * leg in readme uit hoe je een onnx export in python
 * zit 3 files tegelijk downloaden ingebouwd in hf?
+* execution providers toevoegen

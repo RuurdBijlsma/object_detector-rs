@@ -1,5 +1,5 @@
 use color_eyre::Result;
-use object_detector::{Detection, YOLO26Predictor};
+use object_detector::{ObjectDetection, YOLO26Predictor};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -20,8 +20,8 @@ struct MaskStats {
     active_pixels: usize,
 }
 
-impl From<Detection> for SerializableDetection {
-    fn from(det: Detection) -> Self {
+impl From<ObjectDetection> for SerializableDetection {
+    fn from(det: ObjectDetection) -> Self {
         let mask_stats = det.mask.as_ref().map(|m| MaskStats {
             width: m.width,
             height: m.height,
@@ -31,7 +31,8 @@ impl From<Detection> for SerializableDetection {
         Self {
             tag: det.tag,
             score: det.score,
-            bbox: det.bbox,
+            // Convert BoundingBox struct fields to the array format for JSON compatibility
+            bbox: [det.bbox.x1, det.bbox.y1, det.bbox.x2, det.bbox.y2],
             mask_stats,
         }
     }
@@ -48,29 +49,24 @@ fn main() -> Result<()> {
     let img_dir = Path::new("assets/img");
     let mut all_results = BTreeMap::new();
 
-    println!("Exporting model outputs...");
-
     for entry in fs::read_dir(img_dir)? {
         let path = entry?.path();
-        if path.extension().map_or(false, |e| e == "jpg" || e == "png") {
-            let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
-            println!("Processing {file_name}...");
-            let img = image::open(&path)?;
+        let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
+        println!("Processing {file_name}...");
 
-            let results = predictor.predict(&img, 0.4, 0.7)?;
+        let img = image::open(&path)?;
+        let results = predictor.predict(&img, 0.4, 0.7)?;
 
-            let serializable: Vec<SerializableDetection> = results
-                .into_iter()
-                .map(SerializableDetection::from)
-                .collect();
+        let serializable: Vec<SerializableDetection> = results
+            .into_iter()
+            .map(SerializableDetection::from)
+            .collect();
 
-            all_results.insert(file_name, serializable);
-        }
+        all_results.insert(file_name, serializable);
     }
 
     let output_path = "assets/expected_outputs.json";
-    let json = serde_json::to_string_pretty(&all_results)?;
-    fs::write(output_path, json)?;
+    fs::write(output_path, serde_json::to_string_pretty(&all_results)?)?;
 
     println!("✅ Successfully exported results to {output_path}");
     Ok(())

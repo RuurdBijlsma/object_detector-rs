@@ -5,10 +5,10 @@
     clippy::similar_names,
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
-    clippy::cast_possible_wrap,
+    clippy::cast_possible_wrap
 )]
 
-pub mod predictor;
 pub mod model_manager;
+pub mod predictor;
 
-pub use predictor::{Detection, Mask, PreprocessMeta, YOLO26Predictor};
+pub use predictor::{ObjectBBox, ObjectDetection, ObjectMask, YoloPreprocessMeta, YOLO26Predictor};

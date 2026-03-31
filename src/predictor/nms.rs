@@ -1,33 +1,40 @@
-use ndarray::Array1;
+use super::yolo_predictor::ObjectBBox;
 
-#[must_use] 
+#[must_use]
 pub fn non_maximum_suppression(
-    candidates: &[([f32; 4], f32, usize, Array1<f32>)],
-    iou_thresh: f32,
+    boxes: &[ObjectBBox],
+    scores: &[f32],
+    iou_threshold: f32,
 ) -> Vec<usize> {
-    let mut indices: Vec<usize> = (0..candidates.len()).collect();
-    indices.sort_by(|&a, &b| candidates[b].1.partial_cmp(&candidates[a].1).unwrap());
+    let mut indices: Vec<usize> = (0..boxes.len()).collect();
+
+    indices.sort_by(|&a, &b| scores[b].partial_cmp(&scores[a]).unwrap());
 
     let mut kept = Vec::new();
-    while !indices.is_empty() {
-        let current = indices.remove(0);
+    let mut indices_vec = indices;
+
+    while !indices_vec.is_empty() {
+        let current = indices_vec.remove(0);
         kept.push(current);
-        indices.retain(|&idx| {
-            calculate_intersection_over_union(&candidates[current].0, &candidates[idx].0)
-                <= iou_thresh
+
+        let current_box = &boxes[current];
+        indices_vec.retain(|&idx| {
+            calculate_iou(current_box, &boxes[idx]) <= iou_threshold
         });
     }
     kept
 }
 
-#[must_use] 
-pub fn calculate_intersection_over_union(b1: &[f32; 4], b2: &[f32; 4]) -> f32 {
-    let x1 = b1[0].max(b2[0]);
-    let y1 = b1[1].max(b2[1]);
-    let x2 = b1[2].min(b2[2]);
-    let y2 = b1[3].min(b2[3]);
+#[must_use]
+pub fn calculate_iou(b1: &ObjectBBox, b2: &ObjectBBox) -> f32 {
+    let x1 = b1.x1.max(b2.x1);
+    let y1 = b1.y1.max(b2.y1);
+    let x2 = b1.x2.min(b2.x2);
+    let y2 = b1.y2.min(b2.y2);
+
     let inter = (x2 - x1).max(0.0) * (y2 - y1).max(0.0);
-    let area1 = (b1[2] - b1[0]) * (b1[3] - b1[1]);
-    let area2 = (b2[2] - b2[0]) * (b2[3] - b2[1]);
+    let area1 = (b1.x2 - b1.x1) * (b1.y2 - b1.y1);
+    let area2 = (b2.x2 - b2.x1) * (b2.y2 - b2.y1);
+
     inter / (area1 + area2 - inter)
 }
