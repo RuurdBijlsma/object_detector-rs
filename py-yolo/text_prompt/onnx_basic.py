@@ -13,71 +13,82 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 import torch
+import torchvision
 from ultralytics import YOLOE
 from pathlib import Path
 
+def letterbox_rectangular(img, new_shape=640, color=(114, 114, 114), stride=32):
+    shape = img.shape[:2]
+    r = min(new_shape / shape[0], new_shape / shape[1])
+    new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
+    dw, dh = new_shape - new_unpad[0], new_shape - new_unpad[1]
+    dw, dh = np.mod(dw, stride), np.mod(dh, stride)
+    dw /= 2
+    dh /= 2
+    if shape[::-1] != new_unpad:
+        img = cv2.resize(img, new_unpad, interpolation=cv2.INTER_LINEAR)
+    top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
+    left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
+    img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)
+    return img
+
+def xywh2xyxy(x):
+    """Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right."""
+    y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
+    y[..., 0] = x[..., 0] - x[..., 2] / 2  # top left x
+    y[..., 1] = x[..., 1] - x[..., 3] / 2  # top left y
+    y[..., 2] = x[..., 0] + x[..., 2] / 2  # bottom right x
+    y[..., 3] = x[..., 1] + x[..., 3] / 2  # bottom right y
+    return y
+
 def debug_onnx_market_person_count():
-    # 1. Setup
     onnx_path = "assets/prompt_model/yoloe-26x-text-dynamic.onnx"
     img_path = Path("assets/img/market.jpg")
     conf_threshold = 0.15
-    iou_threshold = 0.45
-    img_size = 640
+    iou_threshold = 0.7
 
-    # 2. Load ONNX and Helper
+    # 1. Setup
     session = ort.InferenceSession(onnx_path, providers=['CPUExecutionProvider'])
     yoloe_helper = YOLOE("yoloe-26x-seg.pt")
 
-    # 3. Preprocess Image (Standard Letterbox)
+    # 2. Preprocess
     img0 = cv2.imread(str(img_path))
-    h, w = img0.shape[:2]
-    r = img_size / max(h, w)
-    new_w, new_h = int(round(w * r)), int(round(h * r))
-    resized = cv2.resize(img0, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
-    canvas = np.full((img_size, img_size, 3), 114, dtype=np.uint8)
-    canvas[:new_h, :new_w, :] = resized
-    input_tensor = canvas.transpose(2, 0, 1)[None].astype(np.float32) / 255.0
+    canvas = letterbox_rectangular(img0, 640)
+    canvas_rgb = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+    input_tensor = canvas_rgb.transpose(2, 0, 1)[None].astype(np.float32) / 255.0
 
-    # 4. Get Text Embeddings for ["person"]
+    # 3. Inference
     with torch.no_grad():
         embeddings = yoloe_helper.get_text_pe(["person"]).cpu().numpy()
 
-    # 5. Inference
-    outputs = session.run(None, {
-        'images': input_tensor,
-        'text_embeddings': embeddings
-    })
+    outputs = session.run(None, {'images': input_tensor, 'text_embeddings': embeddings})
+    preds = np.squeeze(outputs[0]).T # [5040, 37]
 
-    # 6. Post-processing (Counting logic)
-    # Output0 shape: [1, 4 + 1 + 32, 8400] -> Transpose to [8400, 37]
-    preds = np.squeeze(outputs[0]).T
-
-    # Slice: 0-3 = box, 4 = score for 'person'
-    boxes = preds[:, :4]
-    scores = preds[:, 4]
+    # 4. Torch-based NMS (Replicating Ultralytics exactly)
+    preds = torch.from_numpy(preds)
 
     # Filter by confidence
-    keep = scores > conf_threshold
-    boxes = boxes[keep]
-    scores = scores[keep]
+    # Column 4 is 'person' score
+    keep = preds[:, 4] > conf_threshold
+    preds = preds[keep]
 
-    if len(boxes) > 0:
-        # Convert xywh to xyxy for NMS
-        x1 = boxes[:, 0] - boxes[:, 2] / 2
-        y1 = boxes[:, 1] - boxes[:, 3] / 2
-        x2 = boxes[:, 0] + boxes[:, 2] / 2
-        y2 = boxes[:, 1] + boxes[:, 3] / 2
-        boxes_xyxy = np.stack([x1, y1, x2, y2], axis=1)
+    if preds.shape[0] > 0:
+        # Convert xywh to xyxy
+        boxes = xywh2xyxy(preds[:, :4])
+        scores = preds[:, 4]
 
-        # Apply NMS
-        indices = cv2.dnn.NMSBoxes(boxes_xyxy.tolist(), scores.tolist(), conf_threshold, iou_threshold)
+        # torchvision.ops.nms is the engine behind YOLO
+        # It handles overlaps with high floating-point precision
+        indices = torchvision.ops.nms(boxes, scores, iou_threshold)
+
+        # Limit to max_det=300 (YOLO default)
+        indices = indices[:300]
         person_count = len(indices)
     else:
         person_count = 0
 
-    # 7. Print Output (Matching PyTorch script format)
     print(f"\n{'='*30}")
-    print(f"ONNX DEBUG RESULTS")
+    print(f"ONNX DEBUG RESULTS (TORCH NMS)")
     print(f"{'='*30}")
     print(f"Image: {img_path.name}")
     print(f"Detected Persons: {person_count}")
