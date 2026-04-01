@@ -76,24 +76,21 @@ class YOLOE_Pure_Inference:
         self.session = ort.InferenceSession(onnx_path, providers=['CPUExecutionProvider'])
         self.clip = PureCLIPEncoder(clip_path)
 
-    def run(self, img_path, classes, conf_threshold=0.15):
+    def run(self, img_path, classes, conf_threshold=0.15, iou_threshold=0.7):
         img0 = cv2.imread(str(img_path))
         if img0 is None: return None, []
+        ih, iw = img0.shape[:2]
 
-        # 1. Preprocess
         canvas, ratio, pad = letterbox_rectangular(img0)
         c_h, c_w = canvas.shape[:2]
         img_tensor = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB).transpose(2, 0, 1)[None].astype(np.float32) / 255.0
 
-        # 2. CLIP Embeddings
         text_pe = self.clip.get_embeddings(classes)
-
-        # 3. ONNX Run
         outputs = self.session.run(None, {'images': img_tensor, 'text_embeddings': text_pe})
         preds, protos = np.squeeze(outputs[0]).T, np.squeeze(outputs[1])
         nc = len(classes)
 
-        # 4. Filter & Decode
+        # Decode scores
         scores_matrix = preds[:, 4: 4 + nc]
         max_scores = np.max(scores_matrix, axis=1)
         class_ids = np.argmax(scores_matrix, axis=1)
@@ -101,68 +98,80 @@ class YOLOE_Pure_Inference:
         mask = max_scores > conf_threshold
         if not np.any(mask): return img0, []
 
+        # Filter by confidence
         boxes_raw = preds[mask, :4]
-        x1 = boxes_raw[:, 0] - boxes_raw[:, 2] / 2
-        y1 = boxes_raw[:, 1] - boxes_raw[:, 3] / 2
-        x2 = boxes_raw[:, 0] + boxes_raw[:, 2] / 2
-        y2 = boxes_raw[:, 1] + boxes_raw[:, 3] / 2
+        max_scores = max_scores[mask]
+        class_ids = class_ids[mask]
+        coeffs = preds[mask, 4 + nc:]
+
+        # Decode Bbox: cxcywh -> xyxy
+        x1, y1 = boxes_raw[:, 0] - boxes_raw[:, 2] / 2, boxes_raw[:, 1] - boxes_raw[:, 3] / 2
+        x2, y2 = boxes_raw[:, 0] + boxes_raw[:, 2] / 2, boxes_raw[:, 1] + boxes_raw[:, 3] / 2
         boxes_xyxy = np.stack([x1, y1, x2, y2], axis=1)
 
-        keep = torchvision.ops.nms(torch.from_numpy(boxes_xyxy).float(),
-                                   torch.from_numpy(max_scores[mask]).float(), 0.7).numpy()
+        # Multi-Class NMS
+        # Offset boxes by class_id * max_coordinate to separate classes during suppression
+        offset = class_ids * 4096
+        boxes_for_nms = boxes_xyxy + offset[:, None]
+
+        keep = torchvision.ops.nms(torch.from_numpy(boxes_for_nms).float(),
+                                   torch.from_numpy(max_scores).float(), iou_threshold).numpy()
 
         if len(keep) == 0: return img0, []
 
-        # 5. Finalize Bboxes & Scores
         final_boxes = boxes_xyxy[keep]
-        final_scores = max_scores[mask][keep]
-        final_cids = class_ids[mask][keep]
-        final_coeffs = preds[mask][keep, 4 + nc:]
+        final_scores = max_scores[keep]
+        final_cids = class_ids[keep]
+        final_coeffs = coeffs[keep]
 
-        # 6. MASK PROCESSING (FIXED)
-        num_dets = len(keep)
-        c_protos, mh, mw = protos.shape
+        # MASK PROCESSING
+        c_p, mh, mw = protos.shape
+        # Multiply raw coefficients with protos (keeping them as LOGITS for now)
+        masks = (torch.from_numpy(final_coeffs) @ torch.from_numpy(protos).view(c_p, -1)).view(-1, mh, mw)
 
-        # Matrix multiply [N, 32] @ [32, 160*160] -> [N, 160, 160]
-        masks = (torch.from_numpy(final_coeffs) @ torch.from_numpy(protos).view(c_protos, -1)).view(num_dets, mh, mw)
-        masks = torch.sigmoid(masks)
-
-        # Upscale to ACTUAL CANVAS SIZE (not just 640x640)
+        # Upscale LOGITS to canvas size
         masks = F.interpolate(masks[None], (c_h, c_w), mode='bilinear', align_corners=False)[0]
 
-        # Crop noise outside boxes (using canvas-space boxes)
+        # Apply sigmoid and crop in canvas space
+        masks = torch.sigmoid(masks)
         masks = crop_mask(masks, torch.from_numpy(final_boxes))
 
-        # Rescale back to original image pixels
-        ih, iw = img0.shape[:2]
+        # Slicing padding
         ph, pw = int(pad[1]), int(pad[0])
         unh, unw = c_h - 2 * ph, c_w - 2 * pw
-
-        # Slice padding -> [N, unh, unw]
         masks = masks[:, ph:ph + unh, pw:pw + unw]
-        # Resize to original
+
+        # Final Upscale to original and threshold
         masks = F.interpolate(masks[None], (ih, iw), mode='bilinear', align_corners=False)[0].gt(0.5).numpy()
 
-        # Rescale boxes
+        # Final Box Rescaling & Clipping
         final_boxes[:, [0, 2]] = (final_boxes[:, [0, 2]] - pad[0]) / ratio[0]
         final_boxes[:, [1, 3]] = (final_boxes[:, [1, 3]] - pad[1]) / ratio[1]
 
         return img0, list(zip(final_boxes, final_scores, final_cids, masks))
 
-
 def visualize(img, detections, classes, out_path):
     canvas = img.copy()
     overlay = canvas.copy()
+
+    # Sort detections by score so higher scores are drawn "on top"
+    detections = sorted(detections, key=lambda x: x[1])
+
     for box, score, cid, mask in detections:
         color = get_color(int(cid))
-        # Fill mask
+        # Mask overlay
         overlay[mask] = color
-        # Draw box and label
-        cv2.rectangle(canvas, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), color, 2)
-        label = f"{classes[cid]} {score:.2f}"
-        cv2.putText(canvas, label, (int(box[0]), int(box[1] - 5)), 0, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
-    # 0.4 opacity for masks
+        # Draw Box with AA for smoothness
+        x1, y1, x2, y2 = box.astype(int)
+        cv2.rectangle(canvas, (x1, y1), (x2, y2), color, 2, cv2.LINE_AA)
+
+        # Draw Label with background (Standard YOLO look)
+        label = f"{classes[cid]} {score:.2f}"
+        (tw, th), baseline = cv2.getTextSize(label, 0, 0.5, 1)
+        cv2.rectangle(canvas, (x1, y1 - th - 5), (x1 + tw, y1), color, -1)
+        cv2.putText(canvas, label, (x1, y1 - 5), 0, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+
     cv2.addWeighted(overlay, 0.4, canvas, 0.6, 0, canvas)
     cv2.imwrite(str(out_path), canvas)
 
