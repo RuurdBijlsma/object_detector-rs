@@ -8,3 +8,4 @@
 *.bin
 output
 mobileclip2*
+py-yolo/.venv
