@@ -1,13 +1,13 @@
-use crate::ObjectDetectorError;
-use crate::model_manager::{HfModel, get_hf_model};
+use crate::model_manager::{get_hf_model, HfModel};
 use crate::predictor::nms::non_maximum_suppression;
-use crate::predictor::preprocess_image;
-use crate::predictor::processing::{ObjectBBox, ObjectDetection, ObjectMask, YoloPreprocessMeta};
+use crate::predictor::processing::{ObjectBBox, ObjectDetection};
+use crate::predictor::{preprocess_image, reconstruct_mask};
+use crate::ObjectDetectorError;
 use bon::bon;
-use image::{DynamicImage, GenericImageView};
-use ndarray::{Array1, Array4, Axis, s};
+use image::{DynamicImage};
+use ndarray::s;
 use ort::ep::ExecutionProviderDispatch;
-use ort::session::{Session, builder::GraphOptimizationLevel};
+use ort::session::{builder::GraphOptimizationLevel, Session};
 use ort::value::Value;
 use rayon::prelude::*;
 use std::{fs, path::Path};
@@ -63,7 +63,7 @@ impl ObjectDetector {
             stride: 32,
         })
     }
-    
+
     #[builder]
     pub fn predict(
         &mut self,
@@ -132,7 +132,7 @@ impl ObjectDetector {
                         .get(*class_id)
                         .cloned()
                         .unwrap_or_else(|| "unknown".into()),
-                    mask: Some(Self::process_mask(
+                    mask: Some(reconstruct_mask(
                         &protos_view,
                         weights,
                         &meta,
