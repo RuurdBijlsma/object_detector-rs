@@ -25,5 +25,12 @@
         * maak mapje in src die promptable heet ofzo, en dan daarin de code zetten om 'm te runnen
         * maak example die visualized met mask+bbox+tags+score
         * zie of ik 'm gelijk kan krijgen met python-onnx
+* make constructor basically yolo only because it doesnt support anything else anyways
+    * arguments: scale (n, s, m, l, x)
+    * include_mask: (seg vs det model) (todo: maak det models voor promptable models)
+    * 2 verschillende structs denk ik, 1 voor promptable, 1 voor prompt free
 * benchmark alle model sizes en laat speed zien in readme
     * 26n: 169ms
+* test of _det_ voor promptable wel sneller is
+* join de 2 export_onnx scripts
+* uv script voor export_onnx package versies pinnen (ook git clip)

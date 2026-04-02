@@ -37,7 +37,8 @@ class YOLOE_Complete_Wrapper(torch.nn.Module):
         y = []
         for m in self.model.model:
             if m.f != -1:
-                feat = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]
+                feat = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j
+                                                            in m.f]
             else:
                 feat = x
 
@@ -53,7 +54,9 @@ class YOLOE_Complete_Wrapper(torch.nn.Module):
 def export_yoloe_final():
     model_scale = "x"
     pt_file = f"yoloe-26{model_scale}-seg.pt"
-    onnx_path = f"yoloe-26{model_scale}-pure-clip.onnx"
+    out_dir = Path("assets/model/promptable")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    onnx_path = out_dir / f"yoloe-26{model_scale}-pure-clip.onnx"
 
     print(f"--- Loading {pt_file} ---")
     yolo = YOLOE(pt_file)

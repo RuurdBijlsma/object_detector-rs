@@ -40,7 +40,7 @@ class YOLO26DetWrapper(torch.nn.Module):
 
 def export_all_variants():
     scales = ["n", "s", "m", "l", "x"]
-    output_dir = Path("assets/model")
+    output_dir = Path("assets/model/prompt_free")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Common settings
