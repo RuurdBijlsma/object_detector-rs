@@ -9,52 +9,80 @@ use color_eyre::Result;
 use image::{Rgba, RgbaImage};
 use imageproc::drawing::{draw_filled_rect_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
-use object_detector::{ObjectDetector, ObjectMask};
-use ort::ep::CUDA;
+use object_detector::predictor::{ObjectMask, PromptableDetector};
+use open_clip_inference::TextEmbedder;
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let mut predictor = ObjectDetector::builder(
-        "assets/model/yoloe-26l-seg-pf.onnx",
-        "assets/model/vocabulary_4585.json",
-    )
-    .with_execution_providers(&[CUDA::default().build()])
-    .build()?;
-
-    let output_dir = Path::new("output/joined_visualization");
+    // --- CONFIGURATION ---
+    let model_path = "py-yolo/text_prompt/yoloe-26x-pure-clip.onnx";
+    let clip_model_id = "RuteNL/MobileCLIP2-B-OpenCLIP-ONNX";
+    let output_dir = Path::new("output/promptable_visualize");
     fs::create_dir_all(output_dir)?;
+
+    // Define the vocabulary we want to search for in the images
+    let labels = vec!["cat", "car", "van", "sign", "person", "lamp", "watermelon"];
+
+    println!("--- Initializing Promptable Pipeline ---");
+
+    // 1. Setup CLIP Text Embedder
+    let text_embedder = TextEmbedder::from_hf(clip_model_id).build().await?;
+
+    // 2. Setup Promptable Detector
+    let mut detector = PromptableDetector::builder(model_path, text_embedder).build()?;
 
     let font = FontVec::try_from_vec(fs::read("assets/Roboto-Regular.ttf")?)?;
 
+    // 3. Process Images
     for entry in fs::read_dir("assets/img")? {
         let path = entry?.path();
+        if path.is_dir() {
+            continue;
+        }
 
         let img = image::open(&path)?;
         let now = Instant::now();
-        let mut results = predictor.predict(&img).call()?;
-        println!("Detected objects [{:?}]: {}", now.elapsed(), path.display());
 
-        // Sort by area using struct fields
+        // Run inference with the dynamic labels
+        let mut results = detector
+            .predict(&img, &labels)
+            .confidence_threshold(0.15)
+            .intersection_over_union(0.7)
+            .call()?;
+
+        println!(
+            "Detected {} objects in [{:?}] for image: {}",
+            results.len(),
+            now.elapsed(),
+            path.display()
+        );
+
+        // Sort by area (largest first) so small objects' tags are drawn on top
         results.sort_by(|a, b| {
             let area_a = (a.bbox.x2 - a.bbox.x1) * (a.bbox.y2 - a.bbox.y1);
             let area_b = (b.bbox.x2 - b.bbox.x1) * (b.bbox.y2 - b.bbox.y1);
-            area_b.partial_cmp(&area_a).unwrap()
+            area_b
+                .partial_cmp(&area_a)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let mut canvas = img.to_rgba8();
         let font_size = (canvas.height() as f32 * 0.025).max(14.0);
         let scale = PxScale::from(font_size);
 
+        // Draw Masks first
         for det in &results {
             if let Some(mask) = &det.mask {
                 apply_mask(&mut canvas, mask, get_color(det.class_id));
             }
         }
 
+        // Draw Bboxes and Text
         for det in &results {
             let color = get_color(det.class_id);
             let b = det.bbox;
@@ -87,9 +115,10 @@ fn main() -> Result<()> {
         }
 
         let file_stem = path.file_stem().unwrap().to_string_lossy();
-        canvas.save(output_dir.join(format!("res_{file_stem}.png")))?;
+        canvas.save(output_dir.join(format!("prompt_{file_stem}.png")))?;
     }
-    println!("Finished, output files saved to {}", output_dir.display());
+
+    println!("Finished! Visual results saved to {}", output_dir.display());
     Ok(())
 }
 
@@ -125,8 +154,9 @@ fn apply_mask(img: &mut RgbaImage, mask: &ObjectMask, color: Rgba<u8>) {
         for x in 0..mask.width.min(iw) {
             if mask.get(x, y) {
                 let p = img.get_pixel_mut(x, y);
+                // Blend 50/50
                 for i in 0..3 {
-                    p[i] = u32::midpoint(u32::from(p[i]), u32::from(color[i])) as u8;
+                    p[i] = ((u32::from(p[i]) + u32::from(color[i])) / 2) as u8;
                 }
             }
         }

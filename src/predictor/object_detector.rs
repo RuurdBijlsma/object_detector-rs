@@ -1,67 +1,15 @@
-use crate::ObjectDetectorError;
-use crate::model_manager::{HfModel, get_hf_model};
+use crate::model_manager::{get_hf_model, HfModel};
 use crate::predictor::nms::non_maximum_suppression;
+use crate::predictor::processing::{ObjectBBox, ObjectDetection, ObjectMask, YoloPreprocessMeta};
+use crate::ObjectDetectorError;
+use bon::bon;
 use image::{DynamicImage, GenericImageView};
-use ndarray::{Array1, Array2, Array4, Axis, s};
-use ort::session::{Session, builder::GraphOptimizationLevel};
+use ndarray::{s, Array1, Array4, Axis};
+use ort::ep::ExecutionProviderDispatch;
+use ort::session::{builder::GraphOptimizationLevel, Session};
 use ort::value::Value;
 use rayon::prelude::*;
 use std::{fs, path::Path};
-use ort::ep::ExecutionProviderDispatch;
-use bon::bon;
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ObjectBBox {
-    pub x1: f32,
-    pub y1: f32,
-    pub x2: f32,
-    pub y2: f32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ObjectMask {
-    pub width: u32,
-    pub height: u32,
-    pub data: Vec<u8>,
-}
-
-impl ObjectMask {
-    #[must_use]
-    pub fn get(&self, x: u32, y: u32) -> bool {
-        let bit_idx = (y * self.width + x) as usize;
-        self.data
-            .get(bit_idx >> 3)
-            .is_some_and(|&byte| (byte & (1 << (bit_idx & 7))) != 0)
-    }
-
-    #[must_use]
-    pub fn to_array2(&self) -> Array2<bool> {
-        Array2::from_shape_fn((self.height as usize, self.width as usize), |(y, x)| {
-            self.get(x as u32, y as u32)
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ObjectDetection {
-    pub bbox: ObjectBBox,
-    pub score: f32,
-    pub class_id: usize,
-    pub tag: String,
-    pub mask: Option<ObjectMask>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct YoloPreprocessMeta {
-    pub ratio: f32,
-    pub pad: (f32, f32),
-    pub orig_shape: (u32, u32),
-    pub tensor_shape: (u32, u32),
-}
 
 #[derive(Debug)]
 pub struct ObjectDetector {
