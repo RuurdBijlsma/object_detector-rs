@@ -1,28 +1,40 @@
 use color_eyre::eyre::Result;
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use ndarray::s;
 use object_detector::predictor::nms::non_maximum_suppression;
+use object_detector::predictor::{preprocess_image, reconstruct_mask};
 use object_detector::{ObjectBBox, ObjectDetector};
 use ort::value::Value;
 use std::hint::black_box;
 
 fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
-    let model_path = "assets/model/yoloe-26x-seg-pf.onnx";
-    let vocab_path = "assets/model/vocabulary_4585.json";
+    // Model Paths
+    let seg_model_path = "assets/model/prompt_free/yoloe-26l-seg-pf.onnx";
+    let det_model_path = "assets/model/prompt_free/yoloe-26l-det-pf.onnx";
+    let vocab_path = "assets/model/prompt_free/vocabulary_4585.json";
     let img_path = "assets/img/fridge.jpg";
 
-    let mut predictor = ObjectDetector::builder(model_path, vocab_path).build()?;
     let img = image::open(img_path).expect("Failed to open image");
 
+    // --- SEGMENTATION MODEL BENCHMARKS ---
+    let mut seg_predictor = ObjectDetector::builder(seg_model_path, vocab_path).build()?;
+
     c.bench_function("preprocess", |b| {
-        b.iter(|| predictor.preprocess(black_box(&img)));
+        b.iter(|| {
+            black_box(preprocess_image(
+                black_box(&img),
+                seg_predictor.engine.image_size,
+                seg_predictor.engine.stride,
+            ))
+        });
     });
 
-    let (input_tensor, meta) = predictor.preprocess(&img);
+    let (input_tensor, meta) = preprocess_image(&img, seg_predictor.engine.image_size, seg_predictor.engine.stride);
 
-    c.bench_function("inference", |b| {
+    c.bench_function("inference_seg", |b| {
         b.iter(|| {
-            let outputs = predictor
+            let outputs = seg_predictor
+                .engine
                 .session
                 .run(ort::inputs!["images" => Value::from_array(input_tensor.clone()).unwrap()])
                 .unwrap();
@@ -32,9 +44,10 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
         });
     });
 
-    // Extract data for downstream component benchmarks
+    // Extract data for component benchmarks
     let (preds, protos) = {
-        let outputs = predictor
+        let outputs = seg_predictor
+            .engine
             .session
             .run(ort::inputs!["images" => Value::from_array(input_tensor.clone()).unwrap()])?;
         let preds = outputs["detections"].try_extract_array::<f32>()?.to_owned();
@@ -65,7 +78,7 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
         });
     });
 
-    // Prepare data for single mask bench
+    // Mask processing benchmark
     let mut boxes = Vec::new();
     let mut scores = Vec::new();
     let mut weights_vec = Vec::new();
@@ -87,10 +100,9 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     if let Some(&idx) = kept.first() {
         let sample_bbox = boxes[idx];
         let weights = &weights_vec[idx];
-
         c.bench_function("process_mask_single", |b| {
             b.iter(|| {
-                black_box(ObjectDetector::process_mask(
+                black_box(reconstruct_mask(
                     black_box(&protos_view),
                     black_box(weights),
                     black_box(&meta),
@@ -100,9 +112,21 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
         });
     }
 
-    c.bench_function("predict_full", |b| {
+    c.bench_function("predict_full_seg", |b| {
         b.iter(|| {
-            predictor
+            seg_predictor
+                .predict(black_box(&img))
+                .call()
+                .expect("Predict failed");
+        });
+    });
+
+    // --- DETECTION MODEL BENCHMARK ---
+    let mut det_predictor = ObjectDetector::builder(det_model_path, vocab_path).build()?;
+
+    c.bench_function("predict_full_det", |b| {
+        b.iter(|| {
+            det_predictor
                 .predict(black_box(&img))
                 .call()
                 .expect("Predict failed");

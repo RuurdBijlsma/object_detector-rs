@@ -14,8 +14,8 @@ use std::{fs, path::Path};
 
 #[derive(Debug)]
 pub struct ObjectDetector {
-    engine: YoloEngine,
-    vocabulary: Vec<String>,
+    pub engine: YoloEngine,
+    pub vocabulary: Vec<String>,
 }
 
 #[bon]
