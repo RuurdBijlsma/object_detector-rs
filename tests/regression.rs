@@ -27,9 +27,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_model_consistency() -> Result<()> {
-        let mut predictor = PromptFreeDetector::from_hf()
-            .build()
-            .await?;
+        let mut predictor = PromptFreeDetector::from_hf().build().await?;
 
         let data = fs::read_to_string("assets/expected_outputs.json")?;
         let expected_map: BTreeMap<String, Vec<ExpectedDetection>> = serde_json::from_str(&data)?;

@@ -1,7 +1,4 @@
-#![allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
-)]
+#![allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 use ab_glyph::{FontVec, PxScale};
 use color_eyre::Result;
 use image::{DynamicImage, Rgba, RgbaImage};
