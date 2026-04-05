@@ -38,4 +38,5 @@ jobs:
         with:
           key: ${{ github.job }}
       - name: Run Tests
-        run: cargo test --release
+        # hf-hub has trouble with parallel tests downloading the same model, so test-threads=1
+        run: cargo test --release -- --test-threads=1
