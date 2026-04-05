@@ -20,9 +20,7 @@ async fn main() -> color_eyre::Result<()> {
     let model_id = "RuteNL/MobileCLIP2-B-OpenCLIP-ONNX";
     println!("Initializing Rust TextEmbedder ({model_id})...");
 
-    let text_embedder = TextEmbedder::from_hf(model_id)
-        .build()
-        .await?;
+    let text_embedder = TextEmbedder::from_hf(model_id).build().await?;
 
     // 3. Generate Embeddings in Rust
     let labels = vec!["cat", "car", "van", "sign", "person", "lamp", "watermelon"];

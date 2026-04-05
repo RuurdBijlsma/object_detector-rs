@@ -1,6 +1,6 @@
 pub mod nms;
-mod prompt_free_detector;
 mod processing;
+mod prompt_free_detector;
 mod promptable_detector;
 
 pub use processing::*;

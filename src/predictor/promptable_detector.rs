@@ -1,9 +1,8 @@
 use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::nms::non_maximum_suppression;
-use crate::predictor::processing::{
-    Candidate, YoloEngine, finalize_detections, preprocess_image,
-};
+use crate::predictor::processing::{Candidate, YoloEngine, finalize_detections, preprocess_image};
+use crate::structs::{DetectedObject, ObjectBBox};
 use bon::bon;
 use image::DynamicImage;
 use ndarray::{Array1, Axis, Ix2, s};
@@ -12,7 +11,6 @@ use ort::ep::ExecutionProviderDispatch;
 use ort::session::{Session, builder::GraphOptimizationLevel};
 use ort::value::Value;
 use std::path::Path;
-use crate::structs::{ObjectBBox, DetectedObject};
 
 #[derive(Debug)]
 pub struct PromptableDetector {

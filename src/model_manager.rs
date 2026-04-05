@@ -1,8 +1,8 @@
 use crate::ObjectDetectorError;
+use crate::structs::{DetectorType, ModelScale};
 #[cfg(feature = "hf-hub")]
 use hf_hub::api::tokio::Api;
 use std::path::PathBuf;
-use crate::structs::{DetectorType, ModelScale};
 
 /// Details for fetching model files from `HuggingFace` Hub.
 pub struct HfModel {
@@ -13,8 +13,8 @@ pub struct HfModel {
 }
 
 impl HfModel {
-    const DEFAULT_REPO_ID: &'static str = "RuteNL/yolo26-object-detection-ONNX";
-    const DEFAULT_CLIP_REPO: &'static str = "RuteNL/MobileCLIP2-B-OpenCLIP-ONNX";
+    pub const DEFAULT_REPO_ID: &'static str = "RuteNL/yolo26-object-detection-ONNX";
+    pub const DEFAULT_CLIP_REPO: &'static str = "RuteNL/MobileCLIP2-B-OpenCLIP-ONNX";
 
     #[must_use]
     pub fn get_model_file_path(

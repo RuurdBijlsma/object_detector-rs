@@ -1,8 +1,8 @@
+use crate::structs::{DetectedObject, ObjectBBox, ObjectMask};
 use image::{DynamicImage, GenericImageView};
-use ndarray::{Array1, Array2, Array4, Axis, s, ArrayView3};
+use ndarray::{Array1, Array4, ArrayView3, Axis, s};
 use ort::session::Session;
 use rayon::prelude::*;
-use crate::structs::{ObjectBBox, DetectedObject, ObjectMask};
 
 #[derive(Debug, Clone)]
 pub struct Candidate {
@@ -186,7 +186,7 @@ pub fn reconstruct_mask(
 #[must_use]
 pub fn finalize_detections(
     candidates: Vec<Candidate>,
-    protos_view: Option<&ArrayView3<f32>>, 
+    protos_view: Option<&ArrayView3<f32>>,
     meta: &YoloPreprocessMeta,
     labels: &[String],
 ) -> Vec<DetectedObject> {

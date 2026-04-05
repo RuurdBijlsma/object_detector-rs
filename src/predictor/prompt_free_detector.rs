@@ -1,17 +1,15 @@
 use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::nms::non_maximum_suppression;
-use crate::predictor::processing::{
-    Candidate, YoloEngine, finalize_detections, preprocess_image,
-};
+use crate::predictor::processing::{Candidate, YoloEngine, finalize_detections, preprocess_image};
+use crate::structs::{DetectedObject, ObjectBBox};
 use bon::bon;
 use image::DynamicImage;
-use ndarray::{s, Array1};
+use ndarray::{Array1, s};
 use ort::ep::ExecutionProviderDispatch;
 use ort::session::{Session, builder::GraphOptimizationLevel};
 use ort::value::Value;
 use std::{fs, path::Path};
-use crate::structs::{DetectedObject, ObjectBBox};
 
 #[derive(Debug)]
 pub struct PromptFreeDetector {
@@ -69,7 +67,7 @@ impl PromptFreeDetector {
         &mut self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(default = 0.4)] confidence_threshold: f32,
-        #[builder(default = 0.7)] intersection_over_curve: f32,
+        #[builder(default = 0.7)] intersection_over_union: f32,
     ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
         let (input_tensor, meta) =
             preprocess_image(img, self.engine.image_size, self.engine.stride);
@@ -78,7 +76,7 @@ impl PromptFreeDetector {
             .engine
             .session
             .run(ort::inputs!["images" => Value::from_array(input_tensor)?])?;
-        
+
         let preds = outputs["detections"].try_extract_array::<f32>()?;
         let protos = outputs
             .get("protos")
@@ -119,7 +117,7 @@ impl PromptFreeDetector {
         // 2. Run Non-Maximum Suppression
         let bboxes: Vec<_> = candidates.iter().map(|c| c.bbox).collect();
         let scores: Vec<_> = candidates.iter().map(|c| c.score).collect();
-        let kept_indices = non_maximum_suppression(&bboxes, &scores, intersection_over_curve);
+        let kept_indices = non_maximum_suppression(&bboxes, &scores, intersection_over_union);
 
         let kept_candidates: Vec<Candidate> = kept_indices
             .into_iter()

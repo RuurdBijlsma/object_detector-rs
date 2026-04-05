@@ -9,11 +9,11 @@ use color_eyre::Result;
 use image::{Rgba, RgbaImage};
 use imageproc::drawing::{draw_filled_rect_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
+use object_detector::{ObjectMask, PromptableDetector};
 use open_clip_inference::TextEmbedder;
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
-use object_detector::{ObjectMask, PromptableDetector};
 
 #[tokio::main]
 async fn main() -> Result<()> {

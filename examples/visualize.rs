@@ -5,7 +5,7 @@ use color_eyre::Result;
 use image::{Rgba, RgbaImage};
 use imageproc::drawing::{draw_filled_rect_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
-use object_detector::{PromptFreeDetector, ObjectMask};
+use object_detector::{ObjectMask, PromptFreeDetector};
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
@@ -31,7 +31,7 @@ fn main() -> Result<()> {
         let img = image::open(&path)?;
         let now = Instant::now();
         let results = predictor.predict(&img).call()?;
-        println!("Detected objects [{:?}]: {}", now.elapsed(),path.display());
+        println!("Detected objects [{:?}]: {}", now.elapsed(), path.display());
 
         let base_rgba = img.to_rgba8();
 

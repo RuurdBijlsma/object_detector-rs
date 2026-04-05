@@ -10,10 +10,11 @@
 
 mod error;
 pub mod model_manager;
-mod object_detector;
+pub mod object_detector;
 pub mod predictor;
 mod structs;
 
 pub use error::ObjectDetectorError;
+pub use object_detector::ObjectDetector;
 pub use predictor::{PromptFreeDetector, PromptableDetector, YoloPreprocessMeta};
 pub use structs::*;

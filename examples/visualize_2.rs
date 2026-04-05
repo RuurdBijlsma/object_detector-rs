@@ -9,7 +9,7 @@ use color_eyre::Result;
 use image::{Rgba, RgbaImage};
 use imageproc::drawing::{draw_filled_rect_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
-use object_detector::{PromptFreeDetector, ObjectMask};
+use object_detector::{ObjectMask, PromptFreeDetector};
 use ort::ep::CUDA;
 use std::fs;
 use std::path::Path;

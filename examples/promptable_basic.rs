@@ -1,7 +1,7 @@
 use color_eyre::eyre::Context;
+use object_detector::PromptableDetector;
 use open_clip_inference::TextEmbedder;
 use std::collections::HashMap;
-use object_detector::PromptableDetector;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
