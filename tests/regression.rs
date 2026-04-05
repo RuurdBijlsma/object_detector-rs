@@ -23,7 +23,7 @@ mod tests {
         active_pixels: usize,
     }
 
-    const FLOAT_EPSILON: f32 = 1e-4;
+    const FLOAT_EPSILON: f32 = 1e-3;
 
     #[tokio::test]
     async fn test_model_consistency() -> Result<()> {

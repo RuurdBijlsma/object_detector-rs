@@ -7,7 +7,6 @@
 * ✅ execution providers toevoegen
 * ✅ kleinere models pullen en kijken of die ook werken
 * ✅ kan ik t ook werkend krijgen met class list als model input? Dus je zegt egg als input en dan detect ie alleen eggs
-* leg in readme uit hoe je een onnx export in python
 * ✅ ik wil graag text-prompt supporten, het liefst in rust only, kan dit?
     * ✅ maak eerst in python only
     * ✅ dan export onnx ervoor maken
@@ -19,14 +18,15 @@
         * ✅ maak mapje in src die promptable heet ofzo, en dan daarin de code zetten om 'm te runnen
         * ✅ maak example die visualized met mask+bbox+tags+score
         * ✅ zie of ik 'm gelijk kan krijgen met python-onnx
-* make constructor basically yolo only because it doesnt support anything else anyways
-    * arguments: scale (n, s, m, l, x)
-    * include_mask: (seg vs det model) (todo: maak det models voor promptable models)
-    * 2 verschillende structs denk ik, 1 voor promptable, 1 voor prompt free
+* ✅ make constructor basically yolo only because it doesnt support anything else anyways
+    * ✅ arguments: scale (n, s, m, l, x)
+    * ✅ include_mask: (seg vs det model) (todo: maak det models voor promptable models)
+    * ✅ 2 verschillende structs denk ik, 1 voor promptable, 1 voor prompt free
+* ✅ join de 2 export_onnx scripts
 * benchmark alle model sizes en laat speed zien in readme
     * 26n: 169ms
 * test of _det_ voor promptable wel sneller is
-* ✅ join de 2 export_onnx scripts
+* leg in readme uit hoe je een onnx export in python
 * uv script voor export_onnx package versies pinnen (ook git clip)
 * test in CI (requires from_hf)
 * cache embeddings in promptable detector
