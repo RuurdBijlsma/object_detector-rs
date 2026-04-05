@@ -15,5 +15,5 @@ pub mod predictor;
 mod structs;
 
 pub use error::ObjectDetectorError;
-pub use predictor::{PromptFreeDetector, YoloPreprocessMeta};
+pub use predictor::{PromptFreeDetector, PromptableDetector, YoloPreprocessMeta};
 pub use structs::*;

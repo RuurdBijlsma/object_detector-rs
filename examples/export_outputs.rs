@@ -1,5 +1,5 @@
 use color_eyre::Result;
-use object_detector::{ObjectBBox, ObjectDetection, PromptFreeDetector};
+use object_detector::{DetectedObject, ObjectBBox, PromptFreeDetector};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -20,8 +20,8 @@ struct MaskStats {
     active_pixels: usize,
 }
 
-impl From<ObjectDetection> for SerializableDetection {
-    fn from(det: ObjectDetection) -> Self {
+impl From<DetectedObject> for SerializableDetection {
+    fn from(det: DetectedObject) -> Self {
         let mask_stats = det.mask.as_ref().map(|m| MaskStats {
             width: m.width,
             height: m.height,
