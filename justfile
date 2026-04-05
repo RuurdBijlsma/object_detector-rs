@@ -26,12 +26,12 @@ setup:
 # --- Execution:
 
 test:
-    cargo test --test regression --profile release -- --nocapture
+    cargo test --profile release --features load-dynamic -- --nocapture
 
 
 bench:
     cargo bench --features load-dynamic
 
 run:
-    cargo run --example visualize_2 --profile release --features load-dynamic
+    cargo run --example visualize --profile release --features load-dynamic
 
