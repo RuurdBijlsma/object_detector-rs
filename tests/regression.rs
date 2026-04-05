@@ -25,13 +25,11 @@ mod tests {
 
     const FLOAT_EPSILON: f32 = 1e-4;
 
-    #[test]
-    fn test_model_consistency() -> Result<()> {
-        let mut predictor = PromptFreeDetector::builder(
-            "assets/model/prompt_free/yoloe-26l-seg-pf.onnx",
-            "assets/model/prompt_free/vocabulary_4585.json",
-        )
-        .build()?;
+    #[tokio::test]
+    async fn test_model_consistency() -> Result<()> {
+        let mut predictor = PromptFreeDetector::from_hf()
+            .build()
+            .await?;
 
         let data = fs::read_to_string("assets/expected_outputs.json")?;
         let expected_map: BTreeMap<String, Vec<ExpectedDetection>> = serde_json::from_str(&data)?;

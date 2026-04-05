@@ -37,14 +37,13 @@ impl From<DetectedObject> for SerializableDetection {
     }
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let mut predictor = PromptFreeDetector::builder(
-        "assets/model/prompt_free/yoloe-26l-seg-pf.onnx",
-        "assets/model/prompt_free/vocabulary_4585.json",
-    )
-    .build()?;
+    let mut predictor = PromptFreeDetector::from_hf()
+        .build()
+        .await?;
 
     let img_dir = Path::new("assets/img");
     let mut all_results = BTreeMap::new();
