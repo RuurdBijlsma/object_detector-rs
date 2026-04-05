@@ -28,3 +28,4 @@
 * test of _det_ voor promptable wel sneller is
 * ✅ join de 2 export_onnx scripts
 * uv script voor export_onnx package versies pinnen (ook git clip)
+* test in CI (requires from_hf)

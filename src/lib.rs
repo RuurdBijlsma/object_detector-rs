@@ -8,9 +8,12 @@
     clippy::cast_possible_wrap
 )]
 
-pub mod model_manager;
-pub mod predictor;
 mod error;
+pub mod model_manager;
+mod object_detector;
+pub mod predictor;
+mod structs;
 
-pub use error::{ObjectDetectorError};
-pub use predictor::{ObjectBBox, ObjectDetection, ObjectMask, PromptFreeDetector, YoloPreprocessMeta};
+pub use error::ObjectDetectorError;
+pub use predictor::{PromptFreeDetector, YoloPreprocessMeta};
+pub use structs::*;

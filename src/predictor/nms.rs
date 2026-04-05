@@ -1,4 +1,4 @@
-use crate::predictor::processing::ObjectBBox;
+use crate::structs::ObjectBBox;
 
 #[must_use]
 pub fn non_maximum_suppression(

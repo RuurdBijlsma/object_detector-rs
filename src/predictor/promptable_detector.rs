@@ -2,7 +2,7 @@ use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::nms::non_maximum_suppression;
 use crate::predictor::processing::{
-    Candidate, ObjectBBox, ObjectDetection, YoloEngine, finalize_detections, preprocess_image,
+    Candidate, YoloEngine, finalize_detections, preprocess_image,
 };
 use bon::bon;
 use image::DynamicImage;
@@ -12,6 +12,7 @@ use ort::ep::ExecutionProviderDispatch;
 use ort::session::{Session, builder::GraphOptimizationLevel};
 use ort::value::Value;
 use std::path::Path;
+use crate::structs::{ObjectBBox, DetectedObject};
 
 #[derive(Debug)]
 pub struct PromptableDetector {
@@ -70,7 +71,7 @@ impl PromptableDetector {
         #[builder(start_fn)] labels: &[&str],
         #[builder(default = 0.15)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
-    ) -> Result<Vec<ObjectDetection>, ObjectDetectorError> {
+    ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
         // 1. Generate Text Embeddings
         let text_embs = self
             .text_embedder

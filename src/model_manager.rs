@@ -2,21 +2,7 @@ use crate::ObjectDetectorError;
 #[cfg(feature = "hf-hub")]
 use hf_hub::api::tokio::Api;
 use std::path::PathBuf;
-
-#[derive(Debug, Clone, Copy)]
-pub enum DetectorType {
-    Promptable,
-    PromptFree,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ModelScale {
-    Nano,
-    Small,
-    Medium,
-    Large,
-    XLarge,
-}
+use crate::structs::{DetectorType, ModelScale};
 
 /// Details for fetching model files from `HuggingFace` Hub.
 pub struct HfModel {
