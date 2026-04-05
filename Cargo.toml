@@ -7,7 +7,7 @@ license = "AGPL-3.0"
 homepage = "https://github.com/RuurdBijlsma/object_detector-rs"
 repository = "https://github.com/RuurdBijlsma/object_detector-rs"
 documentation = "https://docs.rs/object_detector"
-exclude = ["assets", ".github", "TODO.md", "justfile"]
+exclude = ["assets", ".github", "TODO.md", "justfile", "output", "py-yolo"]
 
 [dependencies]
 ort = { version = "2.0.0-rc.12", features = ["ndarray"] }
@@ -29,7 +29,6 @@ imageproc = "0.26.1"
 ab_glyph = "0.2"
 tokio = { version = "1.50", features = ["full"] }
 color-eyre = "0.6.5"
-ndarray-npy = "0.10.0"
 
 [features]
 default = ["download-binaries", "copy-dylibs", "hf-hub", "serde"]

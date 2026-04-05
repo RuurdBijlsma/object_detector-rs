@@ -30,3 +30,4 @@
 * uv script voor export_onnx package versies pinnen (ook git clip)
 * test in CI (requires from_hf)
 * cache embeddings in promptable detector
+* video support/helpers?
