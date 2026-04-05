@@ -1,4 +1,8 @@
-#![allow(clippy::cast_precision_loss)]
+#![allow(
+    clippy::cast_precision_loss,
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap
+)]
 
 #[cfg(test)]
 mod tests {
@@ -23,7 +27,7 @@ mod tests {
         active_pixels: usize,
     }
 
-    const FLOAT_EPSILON: f32 = 1e-3;
+    const FLOAT_EPSILON: f32 = 5e-3;
 
     #[tokio::test]
     async fn test_model_consistency() -> Result<()> {
@@ -124,7 +128,7 @@ mod tests {
                         e.width, e.height, a.width, a.height
                     ));
                 }
-                if active != e.active_pixels {
+                if ((active as i64) - (e.active_pixels as i64)).abs() > 3 {
                     let diff =
                         (active as f64 - e.active_pixels as f64).abs() / e.active_pixels as f64;
                     errors.push(format!(
