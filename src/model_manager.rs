@@ -3,11 +3,13 @@ use crate::ObjectDetectorError;
 use hf_hub::api::tokio::Api;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Copy)]
 pub enum DetectorType {
     Promptable,
     PromptFree,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum ModelScale {
     Nano,
     Small,

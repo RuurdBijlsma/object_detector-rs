@@ -35,7 +35,7 @@ async fn main() -> color_eyre::Result<()> {
     // 4. Inference
     // All preprocessing, CLIP embedding, and post-processing (NMS)
     // are now handled internally by the crate.
-    println!("Running inference for labels: {:?}...", labels);
+    println!("Running inference for labels: {labels:?}...");
     let detections = detector
         .predict(&img, &labels)
         .confidence_threshold(0.15)

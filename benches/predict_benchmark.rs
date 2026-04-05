@@ -1,5 +1,5 @@
 use color_eyre::eyre::Result;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use ndarray::s;
 use object_detector::predictor::nms::non_maximum_suppression;
 use object_detector::predictor::{preprocess_image, reconstruct_mask};
@@ -7,6 +7,7 @@ use object_detector::{ObjectBBox, PromptFreeDetector};
 use ort::value::Value;
 use std::hint::black_box;
 
+#[allow(clippy::too_many_lines)]
 fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     // Model Paths
     let seg_model_path = "assets/model/prompt_free/yoloe-26l-seg-pf.onnx";
@@ -29,7 +30,11 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
         });
     });
 
-    let (input_tensor, meta) = preprocess_image(&img, seg_predictor.engine.image_size, seg_predictor.engine.stride);
+    let (input_tensor, meta) = preprocess_image(
+        &img,
+        seg_predictor.engine.image_size,
+        seg_predictor.engine.stride,
+    );
 
     c.bench_function("inference_seg", |b| {
         b.iter(|| {

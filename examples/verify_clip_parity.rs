@@ -1,3 +1,4 @@
+#![allow(clippy::cast_precision_loss)]
 use ndarray::Array2;
 use ndarray_npy::read_npy;
 use open_clip_inference::TextEmbedder;
@@ -33,7 +34,7 @@ async fn main() -> color_eyre::Result<()> {
     println!("\n--- Parity Results ---");
     let mut total_diff = 0.0;
 
-    for i in 0..labels.len() {
+    for (i, label) in labels.iter().enumerate() {
         let py_row = py_embeddings.row(i);
         let rust_row = rust_embeddings.row(i);
 
@@ -51,13 +52,13 @@ async fn main() -> color_eyre::Result<()> {
         let mae = abs_diff / 512.0;
         total_diff += mae;
 
-        println!("Label: '{}'", labels[i]);
-        println!("  Cosine Similarity: {:.6}", cosine_sim);
-        println!("  Mean Absolute Error: {:.6}", mae);
+        println!("Label: '{label}'");
+        println!("  Cosine Similarity: {cosine_sim:.6}");
+        println!("  Mean Absolute Error: {mae:.6}");
     }
 
     let avg_mae = total_diff / labels.len() as f32;
-    println!("\nFinal Average MAE: {:.6}", avg_mae);
+    println!("\nFinal Average MAE: {avg_mae:.6}");
 
     if avg_mae < 1e-4 {
         println!("✅ PARITY CHECK PASSED: Embeddings are virtually identical.");

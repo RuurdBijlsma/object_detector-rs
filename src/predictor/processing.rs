@@ -70,6 +70,7 @@ pub struct YoloPreprocessMeta {
     pub tensor_shape: (u32, u32),
 }
 
+#[must_use]
 pub fn preprocess_image(
     img: &DynamicImage,
     image_size: u32,
@@ -147,6 +148,7 @@ pub fn preprocess_image(
     )
 }
 
+#[must_use]
 pub fn reconstruct_mask(
     protos: &ndarray::ArrayView3<f32>,
     weights: &Array1<f32>,
@@ -223,6 +225,7 @@ pub fn reconstruct_mask(
     }
 }
 
+#[must_use]
 pub fn finalize_detections(
     candidates: Vec<Candidate>,
     protos_view: Option<&ArrayView3<f32>>, 

@@ -156,7 +156,7 @@ fn apply_mask(img: &mut RgbaImage, mask: &ObjectMask, color: Rgba<u8>) {
                 let p = img.get_pixel_mut(x, y);
                 // Blend 50/50
                 for i in 0..3 {
-                    p[i] = ((u32::from(p[i]) + u32::from(color[i])) / 2) as u8;
+                    p[i] = u32::midpoint(u32::from(p[i]), u32::from(color[i])) as u8;
                 }
             }
         }
