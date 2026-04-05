@@ -7,28 +7,37 @@ license = "AGPL-3.0"
 homepage = "https://github.com/RuurdBijlsma/object_detector-rs"
 repository = "https://github.com/RuurdBijlsma/object_detector-rs"
 documentation = "https://docs.rs/object_detector"
-exclude = ["assets", ".github", "TODO.md", "justfile"]
+exclude = ["assets", ".github", "TODO.md", "justfile", "output", "py-yolo"]
 
 [dependencies]
 ort = { version = "2.0.0-rc.12", features = ["ndarray"] }
 ndarray = "0.17.2"
 image = "0.25.10"
-serde_json = "1.0"
+serde_json = "1.0.149"
 num_cpus = "1.17.0"
-color-eyre = "0.6.5"
 rayon = "1.11.0"
+thiserror = "2.0.18"
+serde = { version = "1.0.228", optional = true, features = ["derive"] }
+hf-hub = { version = "0.5.0", features = ["tokio"], optional = true }
+bon = "3.9.1"
+open_clip_inference = { version = "0.3.0" }
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }
 criterion = { version = "0.8.2", features = ["html_reports"] }
 imageproc = "0.26.1"
 ab_glyph = "0.2"
+tokio = { version = "1.50", features = ["full"] }
+color-eyre = "0.6.5"
 
 [features]
-default = ["download-binaries", "copy-dylibs"]
+default = ["download-binaries", "copy-dylibs", "hf-hub", "serde"]
+serde = ["dep:serde"]
+hf-hub = ["dep:hf-hub"] # -> Enable downloading models from HuggingFace, relies on `tokio`
+# ort forwarded
 download-binaries = ["ort/download-binaries"]
 copy-dylibs = ["ort/copy-dylibs"]
-load-dynamic = ["ort/load-dynamic"]
+load-dynamic = ["ort/load-dynamic", "open_clip_inference/load-dynamic"]
 # ort execution providers
 cuda = ["ort/cuda"]
 tensorrt = ["ort/tensorrt"]

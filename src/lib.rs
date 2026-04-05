@@ -5,8 +5,16 @@
     clippy::similar_names,
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
-    clippy::cast_possible_wrap,
+    clippy::cast_possible_wrap
 )]
 
+mod error;
+pub mod model_manager;
+pub mod object_detector;
 pub mod predictor;
-pub use predictor::{Detection, Mask, PreprocessMeta, YOLO26Predictor};
+mod structs;
+
+pub use error::ObjectDetectorError;
+pub use object_detector::ObjectDetector;
+pub use predictor::{PromptFreeDetector, PromptableDetector, YoloPreprocessMeta};
+pub use structs::*;

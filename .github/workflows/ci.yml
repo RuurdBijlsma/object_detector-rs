@@ -26,16 +26,17 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --no-deps --all-features --tests --benches -- -D clippy::all -D clippy::pedantic -D clippy::nursery
 
-#  test:
-#    name: Tests
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - name: Install Rust
-#        uses: dtolnay/rust-toolchain@stable
-#      - name: Rust Cache
-#        uses: Swatinem/rust-cache@v2
-#        with:
-#          key: ${{ github.job }}
-#      - name: Run Tests
-#        run: cargo test --release
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ github.job }}
+      - name: Run Tests
+        # hf-hub has trouble with parallel tests downloading the same model, so test-threads=1
+        run: cargo test --release -- --test-threads=1
