@@ -1,3 +1,7 @@
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+)]
 use ab_glyph::{FontVec, PxScale};
 use color_eyre::Result;
 use image::{DynamicImage, Rgba, RgbaImage};
@@ -149,9 +153,9 @@ fn apply_mask(img: &mut RgbaImage, mask: &ObjectMask, color: Rgba<u8>) {
             if mask.get(x, y) {
                 let p = img.get_pixel_mut(x, y);
                 // Blend with background
-                p[0] = ((u32::from(p[0]) + u32::from(color[0])) / 2) as u8;
-                p[1] = ((u32::from(p[1]) + u32::from(color[1])) / 2) as u8;
-                p[2] = ((u32::from(p[2]) + u32::from(color[2])) / 2) as u8;
+                p[0] = u32::midpoint(u32::from(p[0]), u32::from(color[0])) as u8;
+                p[1] = u32::midpoint(u32::from(p[1]), u32::from(color[1])) as u8;
+                p[2] = u32::midpoint(u32::from(p[2]), u32::from(color[2])) as u8;
             }
         }
     }
