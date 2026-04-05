@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use ndarray::s;
 use object_detector::predictor::nms::non_maximum_suppression;
 use object_detector::predictor::{preprocess_image, reconstruct_mask};
-use object_detector::{ObjectBBox, ObjectDetector};
+use object_detector::{ObjectBBox, PromptFreeDetector};
 use ort::value::Value;
 use std::hint::black_box;
 
@@ -17,7 +17,7 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     let img = image::open(img_path).expect("Failed to open image");
 
     // --- SEGMENTATION MODEL BENCHMARKS ---
-    let mut seg_predictor = ObjectDetector::builder(seg_model_path, vocab_path).build()?;
+    let mut seg_predictor = PromptFreeDetector::builder(seg_model_path, vocab_path).build()?;
 
     c.bench_function("preprocess", |b| {
         b.iter(|| {
@@ -122,7 +122,7 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     });
 
     // --- DETECTION MODEL BENCHMARK ---
-    let mut det_predictor = ObjectDetector::builder(det_model_path, vocab_path).build()?;
+    let mut det_predictor = PromptFreeDetector::builder(det_model_path, vocab_path).build()?;
 
     c.bench_function("predict_full_det", |b| {
         b.iter(|| {

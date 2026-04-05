@@ -13,19 +13,19 @@ use ort::value::Value;
 use std::{fs, path::Path};
 
 #[derive(Debug)]
-pub struct ObjectDetector {
+pub struct PromptFreeDetector {
     pub engine: YoloEngine,
     pub vocabulary: Vec<String>,
 }
 
 #[bon]
-impl ObjectDetector {
+impl PromptFreeDetector {
     /// Initialize predictor using models hosted on Hugging Face.
     #[cfg(feature = "hf-hub")]
     #[builder(finish_fn = build)]
     pub async fn from_hf(
-        #[builder(default = HfModel::default_model())] model: HfModel,
-        #[builder(default = HfModel::default_data())] data_model: HfModel,
+        #[builder(default = HfModel::default_prompt_free())] model: HfModel,
+        #[builder(default = HfModel::default_prompt_free_data())] data_model: HfModel,
         #[builder(default = HfModel::default_vocabulary())] vocab_model: HfModel,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
     ) -> Result<Self, ObjectDetectorError> {

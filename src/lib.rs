@@ -13,4 +13,4 @@ pub mod predictor;
 mod error;
 
 pub use error::{ObjectDetectorError};
-pub use predictor::{ObjectBBox, ObjectDetection, ObjectMask, ObjectDetector, YoloPreprocessMeta};
+pub use predictor::{ObjectBBox, ObjectDetection, ObjectMask, PromptFreeDetector, YoloPreprocessMeta};

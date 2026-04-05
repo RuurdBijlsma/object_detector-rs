@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod tests {
     use color_eyre::eyre::{Result, eyre};
-    use object_detector::{ObjectBBox, ObjectDetector};
+    use object_detector::{ObjectBBox, PromptFreeDetector};
     use serde::{Deserialize, Serialize};
     use std::collections::BTreeMap;
     use std::fs;
@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn test_model_consistency() -> Result<()> {
-        let mut predictor = ObjectDetector::builder(
+        let mut predictor = PromptFreeDetector::builder(
             "assets/model/prompt_free/yoloe-26l-seg-pf.onnx",
             "assets/model/prompt_free/vocabulary_4585.json",
         )

@@ -1,4 +1,5 @@
 use crate::ObjectDetectorError;
+use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::nms::non_maximum_suppression;
 use crate::predictor::processing::{
     Candidate, ObjectBBox, ObjectDetection, YoloEngine, finalize_detections, preprocess_image,
@@ -20,6 +21,26 @@ pub struct PromptableDetector {
 
 #[bon]
 impl PromptableDetector {
+    /// Initialize predictor using models hosted on Hugging Face.
+    #[cfg(feature = "hf-hub")]
+    #[builder(finish_fn = build)]
+    pub async fn from_hf(
+        #[builder(default = HfModel::default_promptable())] model: HfModel,
+        #[builder(default = HfModel::default_promptable_data())] data_model: HfModel,
+        #[builder(default = HfModel::default_clip_embedder())] clip_hf_repo: String,
+        #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
+    ) -> Result<Self, ObjectDetectorError> {
+        let model_path = get_hf_model(model).await?;
+        get_hf_model(data_model).await?;
+        let text_embedder = TextEmbedder::from_hf(&clip_hf_repo)
+            .with_execution_providers(with_execution_providers)
+            .build()
+            .await?;
+        Self::builder(model_path, text_embedder)
+            .with_execution_providers(with_execution_providers)
+            .build()
+    }
+
     #[builder]
     pub fn new(
         #[builder(start_fn)] model_path: impl AsRef<Path>,
@@ -135,7 +156,7 @@ impl PromptableDetector {
         let protos_view = protos.as_ref().map(|p| p.slice(s![0, .., .., ..]));
 
         // Convert slice labels to String for the shared finalizer
-        let label_strings: Vec<String> = labels.iter().map(|s| s.to_string()).collect();
+        let label_strings: Vec<String> = labels.iter().map(ToString::to_string).collect();
 
         // 6. Use unified finalization logic (passing protos as Option)
         Ok(finalize_detections(

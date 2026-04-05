@@ -9,7 +9,7 @@ use color_eyre::Result;
 use image::{Rgba, RgbaImage};
 use imageproc::drawing::{draw_filled_rect_mut, draw_hollow_rect_mut, draw_text_mut};
 use imageproc::rect::Rect;
-use object_detector::{ObjectDetector, ObjectMask};
+use object_detector::{PromptFreeDetector, ObjectMask};
 use ort::ep::CUDA;
 use std::fs;
 use std::path::Path;
@@ -18,7 +18,7 @@ use std::time::Instant;
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let mut predictor = ObjectDetector::builder(
+    let mut predictor = PromptFreeDetector::builder(
         "assets/model/prompt_free/yoloe-26l-seg-pf.onnx",
         "assets/model/prompt_free/vocabulary_4585.json",
     )

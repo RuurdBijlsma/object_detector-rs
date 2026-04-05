@@ -20,6 +20,9 @@ pub enum ObjectDetectorError {
     #[error("NdArray Error: {0}")]
     NdArray(#[from] ndarray::ShapeError),
 
+    #[error("Clip Error: {0}")]
+    Clip(#[from] open_clip_inference::ClipError),
+
     #[cfg(feature = "hf-hub")]
     #[error("Hugging Face Hub error: {0}")]
     HfHub(String),

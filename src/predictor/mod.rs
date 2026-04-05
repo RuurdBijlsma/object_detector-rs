@@ -1,8 +1,8 @@
 pub mod nms;
-pub mod object_detector;
+pub mod prompt_free_detector;
 pub mod processing;
-mod promptable;
+mod promptable_detector;
 
 pub use processing::*;
-pub use object_detector::*;
-pub use promptable::*;
+pub use prompt_free_detector::*;
+pub use promptable_detector::*;

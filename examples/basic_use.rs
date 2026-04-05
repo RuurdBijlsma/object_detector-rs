@@ -1,5 +1,5 @@
 use color_eyre::Result;
-use object_detector::ObjectDetector;
+use object_detector::PromptFreeDetector;
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -8,7 +8,7 @@ async fn main() -> Result<()> {
     let image = Path::new("assets/img/fridge.jpg");
     let img = image::open(image)?;
 
-    let mut predictor = ObjectDetector::from_hf().build().await?;
+    let mut predictor = PromptFreeDetector::from_hf().build().await?;
     let results = predictor.predict(&img).call()?;
 
     let tags = results

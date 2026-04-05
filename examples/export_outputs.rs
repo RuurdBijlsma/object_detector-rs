@@ -1,5 +1,5 @@
 use color_eyre::Result;
-use object_detector::{ObjectBBox, ObjectDetection, ObjectDetector};
+use object_detector::{ObjectBBox, ObjectDetection, PromptFreeDetector};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs;
@@ -40,7 +40,7 @@ impl From<ObjectDetection> for SerializableDetection {
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let mut predictor = ObjectDetector::builder(
+    let mut predictor = PromptFreeDetector::builder(
         "assets/model/prompt_free/yoloe-26l-seg-pf.onnx",
         "assets/model/prompt_free/vocabulary_4585.json",
     )
