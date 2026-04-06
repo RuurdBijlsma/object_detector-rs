@@ -73,7 +73,7 @@ impl PromptableDetector {
         &self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(start_fn)] labels: &[&str],
-        #[builder(default = 0.25)] confidence_threshold: f32,
+        #[builder(default = 0.2)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
     ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
         let text_embs = self.cache.get_or_embed(labels, &self.text_embedder)?;
