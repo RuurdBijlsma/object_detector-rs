@@ -72,7 +72,7 @@ impl ObjectDetector {
         &mut self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(default = &[])] labels: &[&str],
-        #[builder(default = 0.25)] confidence_threshold: f32,
+        #[builder(default = 0.4)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
     ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
         match &mut self.inner {
