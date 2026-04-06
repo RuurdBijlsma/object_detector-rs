@@ -1,3 +1,76 @@
+# Main parameters
+
+The following example demonstrates how to configure the detector using the builder pattern for both initialization and
+inference.
+
+```rust
+use object_detector::{DetectorType, ModelScale, ObjectDetector};
+use ort::ep::CUDA;
+
+#[tokio::main]
+async fn main() -> color_eyre::Result<()> {
+    let mut detector = ObjectDetector::from_hf(DetectorType::Promptable) // Choose Promptable or PromptFree
+        .scale(ModelScale::Large)      // Choose from Nano to XLarge
+        .include_mask(true)            // Set to false for faster bounding-box-only detection
+        .with_execution_providers(&[
+            // Choose execution provider (error_on_failure is optional, it helps detect failure to use EP)
+            CUDA::default().build().error_on_failure()
+        ])
+        .build()
+        .await?;
+
+    let img = image::open("assets/img/market.jpg")?;
+
+    let results = detector
+        .predict(&img)
+        .labels(&["lamp", "person"])   // Only required for Promptable mode
+        .confidence_threshold(0.35)    // Filter out low-certainty detections
+        .intersection_over_union(0.7)  // Control overlap handling (NMS)
+        .call()?;
+
+    for det in results {
+        println!("Detected: {} with score {}", det.tag, det.score);
+    }
+
+    Ok(())
+}
+```
+
+---
+
+### Understanding Thresholds
+
+Fine-tuning the detection thresholds is essential for balancing precision (reducing false positives) and recall (finding
+all objects).
+
+#### **Confidence Threshold (`confidence_threshold`)**
+
+This parameter determines the minimum certainty required for a detection to be returned.
+
+* **Default:** `0.25`
+* **Low values (e.g., 0.1):** The model will be more sensitive and detect more objects, but it will also return more "
+  noise" or incorrect detections.
+* **High values (e.g., 0.7):** The model will only return objects it is very certain about. This reduces false positives
+  but may cause it to miss partially obscured or small objects.
+
+#### **Intersection Over Union (`intersection_over_union`)**
+
+This parameter controls the Non-Maximum Suppression (NMS) process, which decides how to handle multiple overlapping
+boxes for the same object.
+
+* **Default:** `0.7`
+* **Mechanism:** When two boxes overlap significantly, the IOU value measures the ratio of the overlap area to the total
+  area of both boxes. If the IOU is higher than your threshold, the box with the lower confidence score is discarded.
+* **High values (e.g., 0.8):** More tolerant of overlapping boxes. Useful in crowded scenes where objects are physically
+  close to each other.
+* **Low values (e.g., 0.3):** More aggressive at removing overlaps. Useful if the model is producing "double" detections
+  for a single object.
+
+> [!TIP]
+> This crate uses **0.7** as the default IOU threshold, which is the standard value used by the Ultralytics YOLO26
+> implementation. If you find the model is too aggressive at deleting overlapping objects, try increasing this to 0.8 or
+> 0.85.
+
 ## Model Selection Guide
 
 This crate utilizes **YOLOE-26 (Real-Time Seeing Anything)**, a state-of-the-art open-vocabulary model family built upon
@@ -21,54 +94,43 @@ The following results demonstrate the execution time (latency) across different 
 
 The crate supports five model scales. Choosing the right one depends on your hardware and accuracy requirements:
 
-| Scale          | Description                                             | Best For                                            |
-|:---------------|:--------------------------------------------------------|:----------------------------------------------------|
-| **Nano (N)**   | ~4.8M Parameters. Fastest inference.                    | Edge devices, high-FPS mobile apps, low-power CPUs. |
-| **Small (S)**  | Balanced efficiency. Significantly higher AP than Nano. | Real-time desktop apps, mid-range IoT devices.      |
-| **Medium (M)** | High accuracy with moderate latency.                    | Standard GPU inference where precision matters.     |
-| **Large (L)**  | **(Default)** High-fidelity detection and segmentation. | Server-side processing and high-precision robotics. |
-| **XLarge (X)** | State-of-the-art accuracy. Highest resource usage.      | Non-real-time analysis and maximum-precision tasks. |
+| Scale          | Parameters | Description                            | Best For                                                  |
+|:---------------|:-----------|:---------------------------------------|:----------------------------------------------------------|
+| **Nano (N)**   | ~4.8M      | Fastest inference speed.               | Edge devices, mobile applications, and low-power CPUs.    |
+| **Small (S)**  | ~13.1M     | Balanced efficiency and accuracy.      | Real-time desktop applications and mid-range IoT devices. |
+| **Medium (M)** | ~27.9M     | High accuracy with moderate latency.   | GPU inference where precision is a priority.              |
+| **Large (L)**  | ~32.3M     | **(Default)** High-fidelity detection. | Server-side processing and high-precision robotics.       |
+| **XLarge (X)** | ~69.9M     | Maximum accuracy available.            | Non-real-time analysis and maximum-precision tasks.       |
 
 ### 2. Operating Modes: Prompt-Free vs. Promptable
 
-You can initialize the detector in one of two distinct modes:
+The detector can be initialized in one of two modes:
 
 #### **Prompt-Free Mode (`DetectorType::PromptFree`)**
 
-* **How it works:** Uses a massive internal vocabulary of **4,585 classes** (based on the RAM++ tag list).
-* **Pros:** Extremely fast and "zero-config." It works like a traditional YOLO model but recognizes thousands of objects
-  out of the box.
-* **Cons:** You cannot add new classes at runtime; you are limited to the built-in vocabulary.
+* **Mechanism:** Uses a built-in vocabulary of **4,585 classes** based on the RAM++ tag set.
+* **Characteristics:** This mode is highly efficient as it does not require external text encoding. It functions like a
+  traditional YOLO model but with a much larger pre-defined label set.
+* **Constraint:** You are limited to the built-in vocabulary; you cannot define custom classes at runtime in this mode.
 
 #### **Promptable Mode (`DetectorType::Promptable`)**
 
-* **How it works:** Uses a text-alignment module (RepRTA) to compare image features against **CLIP text embeddings**.
-* **Pros:** Infinite flexibility. You can prompt the model with specific strings like `"vintage blue toaster"` or
-  `"peace symbol"`.
-* **Cons:** Slightly higher overhead. It requires a CLIP model (handled automatically via `open_clip_inference`) to
-  generate embeddings for your labels.
+* **Mechanism:** Uses a text-alignment module to compare image features against **CLIP text embeddings**.
+* **Characteristics:** This mode provides high flexibility. You can prompt the model with specific strings such as
+  `"blue toaster"` or `"peace symbol"`.
+* **Constraint:** Requires a CLIP model (handled automatically via `open_clip_inference`) to generate embeddings for
+  your labels, which adds a small initial overhead.
 
 ### 3. Task Selection: Mask (Segmentation) vs. Detection
 
-When building your detector, you can toggle `include_mask(bool)`.
+You can toggle the `include_mask(bool)` parameter during builder initialization.
 
-* **Instance Segmentation (`include_mask(true)`):** Returns a pixel-perfect `ObjectMask` for every detected object. This
-  is essential for background removal, object isolation, or measurement tasks.
-* **Object Detection (`include_mask(false)`):** Returns only the bounding boxes.
-* **Performance Impact:** Detecting only bounding boxes is **10-25% faster** depending on the scale. Mask reconstruction
-  requires processing "protos" (mask prototypes) and performing bilinear upsampling, which adds CPU/GPU overhead. If you
-  only need to know *where* an object is (box), disable masks for a significant speed boost.
-
-### 🛠 Technical Highlights
-
-* **NMS-Free (End-to-End):** YOLO26 architecture is natively end-to-end. It uses a one-to-one matching strategy during
-  training that allows it to predict the final objects directly. This eliminates the traditional "Non-Maximum
-  Suppression" bottleneck during export and inference.
-* **Embedding Caching:** In Promptable mode, this crate automatically caches the embeddings for your labels. If you call
-  `.predict()` repeatedly with the same labels, the text-encoding step is skipped, allowing for true real-time
-  performance even when using natural language prompts.
-* **Memory Efficiency:** The crate utilizes ONNX Runtime's memory arena and specialized preprocessing to ensure that
-  even the `XLarge` models maintain a stable memory footprint during long-running processes.
+* **Instance Segmentation (`include_mask(true)`):** Includes a pixel-level `ObjectMask` for every detected object. This
+  is useful for tasks like background removal, object isolation, or precise spatial analysis.
+* **Object Detection (`include_mask(false)`):** Returns only the bounding boxes, tags and scores for detected objects.
+* **Performance Impact:**
+* On **GPU**, detecting only bounding boxes is approximately **15-33% faster** than segmentation.
+* On **CPU**, the difference is more significant, running up to **2x faster** when masks are disabled.
 
 # Troubleshooting
 
