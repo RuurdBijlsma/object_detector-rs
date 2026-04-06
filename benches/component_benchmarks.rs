@@ -2,36 +2,20 @@
 use color_eyre::eyre::Result;
 use criterion::{Criterion, criterion_group, criterion_main};
 use ndarray::s;
-use object_detector::model_manager::HfModel;
 use object_detector::predictor::nms::non_maximum_suppression;
 use object_detector::predictor::{preprocess_image, reconstruct_mask};
-use object_detector::{
-    DetectorType, ModelScale, ObjectBBox, PromptFreeDetector, PromptableDetector,
-};
+use object_detector::{ObjectBBox, PromptFreeDetector, PromptableDetector};
 use ort::value::Value;
 use std::hint::black_box;
 
 #[allow(clippy::too_many_lines)]
-fn benchmark_predict_components(
+fn benchmark_components(
     c: &mut Criterion,
     pf_seg: &PromptFreeDetector,
-    pf_det: &PromptFreeDetector,
-    prompt_seg: &PromptableDetector,
-    prompt_det: &PromptableDetector,
+    _prompt_seg: &PromptableDetector,
 ) -> Result<()> {
     let img_path = "assets/img/market.jpg";
     let img = image::open(img_path).expect("Failed to open benchmark image. Ensure image exists.");
-    let labels = [
-        "lamp",
-        "person",
-        "watermelon",
-        "cat",
-        "keyboard",
-        "sausage",
-        "jar",
-        "car",
-        "van",
-    ];
 
     // --- PROMPT-FREE SEGMENTATION ---
     c.bench_function("preprocess", |b| {
@@ -127,44 +111,7 @@ fn benchmark_predict_components(
         });
     }
 
-    c.bench_function("predict_full_pf_seg", |b| {
-        b.iter(|| {
-            pf_seg
-                .predict(black_box(&img))
-                .call()
-                .expect("Predict failed");
-        });
-    });
-
-    // --- PROMPT-FREE DETECTION ---
-    c.bench_function("predict_full_pf_det", |b| {
-        b.iter(|| {
-            pf_det
-                .predict(black_box(&img))
-                .call()
-                .expect("Predict failed");
-        });
-    });
-
-    // --- PROMPTABLE SEGMENTATION ---
-    c.bench_function("predict_full_promptable_seg", |b| {
-        b.iter(|| {
-            prompt_seg
-                .predict(black_box(&img), black_box(&labels))
-                .call()
-                .expect("Predict failed");
-        });
-    });
-
-    // --- PROMPTABLE DETECTION ---
-    c.bench_function("predict_full_promptable_det", |b| {
-        b.iter(|| {
-            prompt_det
-                .predict(black_box(&img), black_box(&labels))
-                .call()
-                .expect("Predict failed");
-        });
-    });
+    // Full predict benchmarks removed - moved to full_benchmarks.rs
 
     Ok(())
 }
@@ -175,56 +122,24 @@ fn benchmark_wrapper(c: &mut Criterion) {
         .build()
         .expect("Failed to create Tokio runtime");
 
-    // Initialize 4 detector variants from HuggingFace
-    let (pf_seg, pf_det, prompt_seg, prompt_det) = runtime.block_on(async {
-        println!("Downloading/Loading models from Hugging Face for benchmarking...");
-
-        // Helper to get non-default HfModel paths (Detection only variants)
-        let pf_det_file =
-            HfModel::get_model_file_path(DetectorType::PromptFree, ModelScale::Large, false);
-        let prompt_det_file =
-            HfModel::get_model_file_path(DetectorType::Promptable, ModelScale::Large, false);
+    // Initialize only necessary detector variants for component benchmarking
+    let (pf_seg, prompt_seg) = runtime.block_on(async {
+        println!("Downloading/Loading models for component benchmarking...");
 
         let pf_seg = PromptFreeDetector::from_hf()
             .build()
             .await
             .expect("Failed to load pf_seg");
 
-        let pf_det = PromptFreeDetector::from_hf()
-            .model(HfModel {
-                id: HfModel::DEFAULT_REPO_ID.to_string(),
-                file: pf_det_file.clone(),
-            })
-            .data_model(HfModel {
-                id: HfModel::DEFAULT_REPO_ID.to_string(),
-                file: format!("{pf_det_file}.data"),
-            })
-            .build()
-            .await
-            .expect("Failed to load pf_det");
-
         let prompt_seg = PromptableDetector::from_hf()
             .build()
             .await
             .expect("Failed to load prompt_seg");
 
-        let prompt_det = PromptableDetector::from_hf()
-            .model(HfModel {
-                id: HfModel::DEFAULT_REPO_ID.to_string(),
-                file: prompt_det_file.clone(),
-            })
-            .data_model(HfModel {
-                id: HfModel::DEFAULT_REPO_ID.to_string(),
-                file: format!("{prompt_det_file}.data"),
-            })
-            .build()
-            .await
-            .expect("Failed to load prompt_det");
-
-        (pf_seg, pf_det, prompt_seg, prompt_det)
+        (pf_seg, prompt_seg)
     });
 
-    benchmark_predict_components(c, &pf_seg, &pf_det, &prompt_seg, &prompt_det).unwrap();
+    benchmark_components(c, &pf_seg, &prompt_seg).unwrap();
 }
 
 criterion_group!(benches, benchmark_wrapper);

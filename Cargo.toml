@@ -60,5 +60,9 @@ rknpu = ["ort/rknpu", "open_clip_inference/rknpu"]
 azure = ["ort/azure", "open_clip_inference/azure"]
 
 [[bench]]
-name = "predict_benchmark"
+name = "component_benchmarks"
+harness = false
+
+[[bench]]
+name = "full_benchmarks"
 harness = false

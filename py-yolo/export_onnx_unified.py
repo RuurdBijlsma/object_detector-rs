@@ -4,7 +4,7 @@
 #    "torch==2.11.0",
 #    "ultralytics==8.4.31",
 #    "onnx==1.21.0",
-#    "numpy",
+#    "numpy==2.4.4",
 #    "onnxscript==0.6.2",
 #    "clip @ git+https://github.com/ultralytics/CLIP.git",
 # ]

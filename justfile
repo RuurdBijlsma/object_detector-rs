@@ -30,7 +30,7 @@ test:
 
 
 bench:
-    cargo bench --features load-dynamic
+    cargo bench --features load-dynamic,cuda
 
 run:
     cargo run --example visualize --profile release --features load-dynamic
