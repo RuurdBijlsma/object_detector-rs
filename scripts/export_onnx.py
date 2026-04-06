@@ -10,6 +10,8 @@
 # ]
 # ///
 
+### Script for exporting official yolo 26 models to onnx, for use by this crate.
+
 import torch
 import json
 import argparse
