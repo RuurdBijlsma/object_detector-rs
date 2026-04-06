@@ -61,8 +61,8 @@
 //!         .scale(ModelScale::Large)      // Choose from Nano to XLarge
 //!         .include_mask(true)            // Set to false for faster bounding-box-only detection
 //!         .with_execution_providers(&[
-//!             // Choose execution provider (error_on_failure is optional, it helps detect failure to use EP)
-//!             CUDA::default().build().error_on_failure()
+//!             // Choose execution provider
+//!             CUDA::default().build()
 //!         ])
 //!         .build()
 //!         .await?;
