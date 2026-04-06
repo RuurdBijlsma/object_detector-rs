@@ -24,7 +24,7 @@ of 4,500+ tags).
 
 ---
 
-## Quick Start
+## Usage
 
 ```rust
 use object_detector::{DetectorType, ObjectDetector};
@@ -114,7 +114,7 @@ on [HuggingFace](https://huggingface.co/RuteNL/yolo26-object-detection-ONNX), yo
 uv run scripts/export_onnx.py
 ```
 
-### 2. Processing and Visualizing Results
+### Processing and Visualizing Results
 
 Each `DetectedObject` contains a bounding box, a score, a class ID, a tag string, and an optional pixel-level mask.
 
@@ -123,14 +123,8 @@ see [examples/visualize.rs](examples/visualize.rs).*
 
 ### Execution Providers (Nvidia, AMD, Intel, Mac, Arm, etc.)
 
-To use hardware acceleration, you must enable the corresponding feature in your `Cargo.toml`.
-
-```toml
-[dependencies]
-object_detector = { version = "0.2.1", features = ["cuda"] }
-```
-
-Then, pass the provider during initialization:
+To use hardware acceleration, you must enable the corresponding feature in your `Cargo.toml`. Then, pass the provider
+during initialization:
 
 ```rust
 pub fn main() {
@@ -165,7 +159,7 @@ The following results demonstrate the execution time (latency) across different 
 > For **Promptable** modes, text embeddings (CLIP) are cached, as they would be when performing repeated inference
 > during normal use.
 
-### 1. Model Scales: Speed vs. Accuracy
+### Model Scales: Speed vs. Accuracy
 
 The crate supports five model scales. Choosing the right one depends on your hardware and accuracy requirements:
 
@@ -177,7 +171,7 @@ The crate supports five model scales. Choosing the right one depends on your har
 | **Large (L)**  | ~32.3M     | **(Default)** High-fidelity detection. | Server-side processing and high-precision robotics.       |
 | **XLarge (X)** | ~69.9M     | Maximum accuracy available.            | Non-real-time analysis and maximum-precision tasks.       |
 
-### 2. Operating Modes: Prompt-Free vs. Promptable
+### Operating Modes: Prompt-Free vs. Promptable
 
 #### **Prompt-Free Mode (`DetectorType::PromptFree`)**
 
@@ -194,7 +188,7 @@ The crate supports five model scales. Choosing the right one depends on your har
 * **Constraint:** Requires a CLIP model (handled automatically via `open_clip_inference`) to generate embeddings for
   your labels, which adds a small initial overhead.
 
-### 3. Task Selection: Mask (Segmentation) vs. Detection
+### Task Selection: Mask (Segmentation) vs. Detection
 
 You can toggle the `include_mask(bool)` parameter during builder initialization.
 
