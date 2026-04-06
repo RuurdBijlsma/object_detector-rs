@@ -31,3 +31,4 @@
 * test in CI (requires from_hf)
 * cache embeddings in promptable detector
 * video support/helpers?
+* maak promptable een feature, alleen open_clip_embedder binnenhalen als ie enabled is

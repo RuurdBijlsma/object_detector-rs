@@ -66,7 +66,7 @@ impl PromptFreeDetector {
     pub fn predict(
         &mut self,
         #[builder(start_fn)] img: &DynamicImage,
-        #[builder(default = 0.4)] confidence_threshold: f32,
+        #[builder(default = 0.25)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
     ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
         let (input_tensor, meta) =
@@ -89,7 +89,7 @@ impl PromptFreeDetector {
         // Seg models have 38 columns (4 box + 1 score + 1 class + 32 weights)
         let has_masks = protos.is_some() && preds_view.shape()[1] >= 38;
 
-        // 1. Extract candidates
+        // Extract candidates
         let mut candidates = Vec::new();
         for i in 0..preds_view.shape()[0] {
             let score = preds_view[[i, 4]];
@@ -114,7 +114,7 @@ impl PromptFreeDetector {
             }
         }
 
-        // 2. Run Non-Maximum Suppression
+        // Run Non-Maximum Suppression
         let bboxes: Vec<_> = candidates.iter().map(|c| c.bbox).collect();
         let scores: Vec<_> = candidates.iter().map(|c| c.score).collect();
         let kept_indices = non_maximum_suppression(&bboxes, &scores, intersection_over_union);
@@ -124,7 +124,7 @@ impl PromptFreeDetector {
             .map(|idx| candidates[idx].clone())
             .collect();
 
-        // 3. Finalize detections
+        // Finalize detections
         let protos_view = protos.as_ref().map(|p| p.slice(s![0, .., .., ..]));
 
         Ok(finalize_detections(
