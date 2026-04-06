@@ -6,7 +6,7 @@
 #    "onnx==1.21.0",
 #    "numpy==2.4.4",
 #    "onnxscript==0.6.2",
-#    "clip @ git+https://github.com/ultralytics/CLIP.git",
+#    "clip @ git+https://github.com/ultralytics/CLIP.git@b0c7af36eb99a5e103713e1792fc642f78059c39",
 # ]
 # ///
 

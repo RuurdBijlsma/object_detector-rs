@@ -105,6 +105,15 @@ fn main() -> color_eyre::Result<()> {
 }
 ```
 
+#### Generating ONNX files
+
+If you don't want to use the ONNX files hosted
+on [HuggingFace](https://huggingface.co/RuteNL/yolo26-object-detection-ONNX), you can generate them yourself.
+
+```shell
+uv run scripts/export_onnx.py
+```
+
 ### 2. Processing and Visualizing Results
 
 Each `DetectedObject` contains a bounding box, a score, a class ID, a tag string, and an optional pixel-level mask.
