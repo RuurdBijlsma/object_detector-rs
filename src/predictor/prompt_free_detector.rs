@@ -1,3 +1,5 @@
+// Mutex lock drop can't be done earlier
+#![allow(clippy::significant_drop_tightening)]
 use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::nms::non_maximum_suppression;
@@ -65,7 +67,7 @@ impl PromptFreeDetector {
 
     #[builder]
     pub fn predict(
-        &mut self,
+        &self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(default = 0.25)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,

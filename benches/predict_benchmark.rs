@@ -1,3 +1,4 @@
+#![allow(clippy::significant_drop_tightening)]
 use color_eyre::eyre::Result;
 use criterion::{Criterion, criterion_group, criterion_main};
 use ndarray::s;
@@ -22,7 +23,7 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     let labels = ["lamp", "person", "bottle", "shelf"];
 
     // --- PROMPT-FREE SEGMENTATION MODEL BENCHMARKS ---
-    let mut pf_seg_predictor =
+    let pf_seg_predictor =
         PromptFreeDetector::builder(pf_seg_model_path, vocab_path).build()?;
 
     c.bench_function("preprocess", |b| {
@@ -130,7 +131,7 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     });
 
     // --- PROMPT-FREE DETECTION MODEL BENCHMARK ---
-    let mut pf_det_predictor =
+    let pf_det_predictor =
         PromptFreeDetector::builder(pf_det_model_path, vocab_path).build()?;
 
     c.bench_function("predict_full_pf_det", |b| {
@@ -147,7 +148,7 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     let embedder_seg = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
         .build()
         .await?;
-    let mut prompt_seg_predictor =
+    let prompt_seg_predictor =
         PromptableDetector::builder(prompt_seg_model_path, embedder_seg).build()?;
     c.bench_function("predict_full_promptable_seg", |b| {
         b.iter(|| {
@@ -162,7 +163,7 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     let embedder_det = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
         .build()
         .await?;
-    let mut prompt_det_predictor =
+    let prompt_det_predictor =
         PromptableDetector::builder(prompt_det_model_path, embedder_det).build()?;
     c.bench_function("predict_full_promptable_det", |b| {
         b.iter(|| {

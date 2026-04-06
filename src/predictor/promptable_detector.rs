@@ -1,3 +1,5 @@
+// Mutex lock drop can't be done earlier
+#![allow(clippy::significant_drop_tightening)]
 use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::EmbeddingCache;
@@ -68,7 +70,7 @@ impl PromptableDetector {
 
     #[builder]
     pub fn predict(
-        &mut self,
+        &self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(start_fn)] labels: &[&str],
         #[builder(default = 0.25)] confidence_threshold: f32,
