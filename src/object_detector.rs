@@ -1,4 +1,5 @@
 use crate::ObjectDetectorError;
+#[cfg(feature = "hf-hub")]
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::{PromptFreeDetector, PromptableDetector};
 use crate::structs::{DetectedObject, DetectorType, ModelScale};

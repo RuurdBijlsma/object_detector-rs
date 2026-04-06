@@ -224,12 +224,15 @@
 )]
 
 mod error;
+#[cfg(feature = "hf-hub")]
 pub mod model_manager;
+#[cfg(feature = "hf-hub")]
 pub mod object_detector;
 pub mod predictor;
 mod structs;
 
 pub use error::ObjectDetectorError;
+#[cfg(feature = "hf-hub")]
 pub use object_detector::ObjectDetector;
 pub use predictor::{PromptFreeDetector, PromptableDetector, YoloPreprocessMeta};
 pub use structs::*;
