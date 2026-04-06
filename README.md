@@ -163,13 +163,17 @@ The following results demonstrate the execution time (latency) across different 
 
 The crate supports five model scales. Choosing the right one depends on your hardware and accuracy requirements:
 
-| Scale          | Parameters | Description                            | Best For                                                  |
-|:---------------|:-----------|:---------------------------------------|:----------------------------------------------------------|
-| **Nano (N)**   | ~4.8M      | Fastest inference speed.               | Edge devices, mobile applications, and low-power CPUs.    |
-| **Small (S)**  | ~13.1M     | Balanced efficiency and accuracy.      | Real-time desktop applications and mid-range IoT devices. |
-| **Medium (M)** | ~27.9M     | High accuracy with moderate latency.   | GPU inference where precision is a priority.              |
-| **Large (L)**  | ~32.3M     | **(Default)** High-fidelity detection. | Server-side processing and high-precision robotics.       |
-| **XLarge (X)** | ~69.9M     | Maximum accuracy available.            | Non-real-time analysis and maximum-precision tasks.       |
+| Scale          | Parameters | **Accuracy (mAP)** | Description                            | Best For                                                  |
+|:---------------|:-----------|:-------------------|:---------------------------------------|:----------------------------------------------------------|
+| **Nano (N)**   | ~4.8M      | **41.0**           | Fastest inference speed.               | Edge devices, mobile applications, and low-power CPUs.    |
+| **Small (S)**  | ~13.1M     | **48.7**           | Balanced efficiency and accuracy.      | Real-time desktop applications and mid-range IoT devices. |
+| **Medium (M)** | ~27.9M     | **53.1**           | High accuracy with moderate latency.   | GPU inference where precision is a priority.              |
+| **Large (L)**  | ~32.3M     | **55.0**           | **(Default)** High-fidelity detection. | Server-side processing and high-precision robotics.       |
+| **XLarge (X)** | ~69.9M     | **57.5**           | Maximum accuracy available.            | Non-real-time analysis and maximum-precision tasks.       |
+
+> [!NOTE]
+> Model accuracy numbers retrieved
+> from [YOLO26](https://github.com/ultralytics/ultralytics/blob/main/docs/en/models/yolo26.md) docs
 
 ### Operating Modes: Prompt-Free vs. Promptable
 
