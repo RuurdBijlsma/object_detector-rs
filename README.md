@@ -233,10 +233,11 @@ boxes for the same object.
 
 ## Cargo Features
 
-| Feature  | Default | Description                                             | Dependencies      |
-|:---------|:-------:|:--------------------------------------------------------|:------------------|
-| `hf-hub` | **Yes** | Enable automatic model downloading from Hugging Face.   | `hf-hub`, `tokio` |
-| `serde`  | **Yes** | Enable `Serialize`/`Deserialize` for detection structs. | `serde`           |
+| Feature      | Default | Description                                             | Dependencies          |
+|:-------------|:-------:|:--------------------------------------------------------|:----------------------|
+| `promptable` | **Yes** | Enable the Promptable detector and CLIP embeddings.     | `open_clip_inference` |
+| `hf-hub`     | **Yes** | Enable automatic model downloading from Hugging Face.   | `hf-hub`, `tokio`     |
+| `serde`      | **Yes** | Enable `Serialize`/`Deserialize` for detection structs. | `serde`               |
 
 The main `ort` Cargo features are also forwarded.
 

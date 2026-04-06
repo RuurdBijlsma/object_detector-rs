@@ -21,12 +21,18 @@ impl HfModel {
         include_mask: bool,
     ) -> String {
         let folder = match detector_type {
+            #[cfg(feature = "promptable")]
             DetectorType::Promptable => "promptable",
             DetectorType::PromptFree => "prompt_free",
+            #[allow(unreachable_patterns)]
+            _ => "prompt_free",
         };
         let type_string = match detector_type {
+            #[cfg(feature = "promptable")]
             DetectorType::Promptable => "promptable",
             DetectorType::PromptFree => "pf",
+            #[allow(unreachable_patterns)]
+            _ => "pf",
         };
         let scale_string = match scale {
             ModelScale::Nano => "n",
@@ -66,6 +72,7 @@ impl HfModel {
         }
     }
 
+    #[cfg(feature = "promptable")]
     #[must_use]
     pub fn default_promptable() -> Self {
         Self {
@@ -74,6 +81,7 @@ impl HfModel {
         }
     }
 
+    #[cfg(feature = "promptable")]
     #[must_use]
     pub fn default_promptable_data() -> Self {
         Self {
@@ -85,6 +93,7 @@ impl HfModel {
         }
     }
 
+    #[cfg(feature = "promptable")]
     #[must_use]
     pub fn default_clip_embedder() -> String {
         Self::DEFAULT_CLIP_REPO.to_owned()
