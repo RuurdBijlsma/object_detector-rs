@@ -32,3 +32,5 @@
 * cache embeddings in promptable detector
 * video support/helpers?
 * maak promptable een feature, alleen open_clip_embedder binnenhalen als ie enabled is
+* mutex in inner models of in de wrapper struct
+* maak benchmark met from_hf (is nu toch async)

@@ -9,6 +9,7 @@ use ndarray::{Array1, s};
 use ort::ep::ExecutionProviderDispatch;
 use ort::session::{Session, builder::GraphOptimizationLevel};
 use ort::value::Value;
+use std::sync::Mutex;
 use std::{fs, path::Path};
 
 #[derive(Debug)]
@@ -54,7 +55,7 @@ impl PromptFreeDetector {
 
         Ok(Self {
             engine: YoloEngine {
-                session,
+                session: Mutex::new(session),
                 image_size: 640,
                 stride: 32,
             },
@@ -72,10 +73,8 @@ impl PromptFreeDetector {
         let (input_tensor, meta) =
             preprocess_image(img, self.engine.image_size, self.engine.stride);
 
-        let outputs = self
-            .engine
-            .session
-            .run(ort::inputs!["images" => Value::from_array(input_tensor)?])?;
+        let mut session = self.engine.session.lock()?;
+        let outputs = session.run(ort::inputs!["images" => Value::from_array(input_tensor)?])?;
 
         let preds = outputs["detections"].try_extract_array::<f32>()?;
         let protos = outputs

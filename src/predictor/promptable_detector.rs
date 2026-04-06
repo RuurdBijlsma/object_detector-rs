@@ -1,5 +1,6 @@
 use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
+use crate::predictor::EmbeddingCache;
 use crate::predictor::nms::non_maximum_suppression;
 use crate::predictor::processing::{Candidate, YoloEngine, finalize_detections, preprocess_image};
 use crate::structs::{DetectedObject, ObjectBBox};
@@ -11,7 +12,7 @@ use ort::ep::ExecutionProviderDispatch;
 use ort::session::{Session, builder::GraphOptimizationLevel};
 use ort::value::Value;
 use std::path::Path;
-use crate::predictor::EmbeddingCache;
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct PromptableDetector {
@@ -56,7 +57,7 @@ impl PromptableDetector {
 
         Ok(Self {
             engine: YoloEngine {
-                session,
+                session: Mutex::new(session),
                 image_size: 640,
                 stride: 32,
             },
@@ -79,7 +80,8 @@ impl PromptableDetector {
         let (img_tensor, meta) = preprocess_image(img, self.engine.image_size, self.engine.stride);
 
         // Inference
-        let outputs = self.engine.session.run(ort::inputs![
+        let mut session = self.engine.session.lock()?;
+        let outputs = session.run(ort::inputs![
             "images" => Value::from_array(img_tensor)?,
             "text_embeddings" => Value::from_array(text_tensor)?
         ])?;

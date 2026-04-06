@@ -20,7 +20,7 @@ thiserror = "2.0.18"
 bon = "3.9.1"
 serde = { version = "1.0.228", optional = true, features = ["derive"] }
 hf-hub = { version = "0.5.0", features = ["tokio"], optional = true }
-open_clip_inference = { version = "0.3.1" }
+open_clip_inference = { version = "0.4.0" }
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }

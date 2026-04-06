@@ -16,7 +16,17 @@ async fn main() -> Result<()> {
     let img_dir = Path::new("assets/img");
     let font_path = Path::new("assets/Roboto-Regular.ttf");
     let font = FontVec::try_from_vec(fs::read(font_path)?)?;
-    let labels = ["lamp", "person", "watermelon", "cat", "keyboard", "sausage", "jar", "car", "van"];
+    let labels = [
+        "lamp",
+        "person",
+        "watermelon",
+        "cat",
+        "keyboard",
+        "sausage",
+        "jar",
+        "car",
+        "van",
+    ];
 
     let config_specs = [
         (DetectorType::PromptFree, true, "output/prompt_free_masked"),

@@ -3,44 +3,48 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use ndarray::s;
 use object_detector::predictor::nms::non_maximum_suppression;
 use object_detector::predictor::{preprocess_image, reconstruct_mask};
-use object_detector::{ObjectBBox, PromptFreeDetector};
+use object_detector::{ObjectBBox, PromptFreeDetector, PromptableDetector};
+use open_clip_inference::TextEmbedder;
 use ort::value::Value;
 use std::hint::black_box;
 
 #[allow(clippy::too_many_lines)]
-fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
+async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     // Model Paths
-    let seg_model_path = "assets/model/prompt_free/yoloe-26l-seg-pf.onnx";
-    let det_model_path = "assets/model/prompt_free/yoloe-26l-det-pf.onnx";
+    let pf_seg_model_path = "assets/model/prompt_free/yoloe-26l-seg-pf.onnx";
+    let pf_det_model_path = "assets/model/prompt_free/yoloe-26l-det-pf.onnx";
+    let prompt_seg_model_path = "assets/model/promptable/yoloe-26l-seg-promptable.onnx";
+    let prompt_det_model_path = "assets/model/promptable/yoloe-26l-det-promptable.onnx";
     let vocab_path = "assets/model/prompt_free/vocabulary_4585.json";
     let img_path = "assets/img/fridge.jpg";
 
     let img = image::open(img_path).expect("Failed to open image");
+    let labels = ["lamp", "person", "bottle", "shelf"];
 
-    // --- SEGMENTATION MODEL BENCHMARKS ---
-    let mut seg_predictor = PromptFreeDetector::builder(seg_model_path, vocab_path).build()?;
+    // --- PROMPT-FREE SEGMENTATION MODEL BENCHMARKS ---
+    let mut pf_seg_predictor =
+        PromptFreeDetector::builder(pf_seg_model_path, vocab_path).build()?;
 
     c.bench_function("preprocess", |b| {
         b.iter(|| {
             black_box(preprocess_image(
                 black_box(&img),
-                seg_predictor.engine.image_size,
-                seg_predictor.engine.stride,
+                pf_seg_predictor.engine.image_size,
+                pf_seg_predictor.engine.stride,
             ))
         });
     });
 
     let (input_tensor, meta) = preprocess_image(
         &img,
-        seg_predictor.engine.image_size,
-        seg_predictor.engine.stride,
+        pf_seg_predictor.engine.image_size,
+        pf_seg_predictor.engine.stride,
     );
 
     c.bench_function("inference_seg", |b| {
         b.iter(|| {
-            let outputs = seg_predictor
-                .engine
-                .session
+            let mut session = pf_seg_predictor.engine.session.lock().unwrap();
+            let outputs = session
                 .run(ort::inputs!["images" => Value::from_array(input_tensor.clone()).unwrap()])
                 .unwrap();
             let preds = outputs["detections"].try_extract_array::<f32>().unwrap();
@@ -51,9 +55,8 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
 
     // Extract data for component benchmarks
     let (preds, protos) = {
-        let outputs = seg_predictor
-            .engine
-            .session
+        let mut session = pf_seg_predictor.engine.session.lock().unwrap();
+        let outputs = session
             .run(ort::inputs!["images" => Value::from_array(input_tensor.clone()).unwrap()])?;
         let preds = outputs["detections"].try_extract_array::<f32>()?.to_owned();
         let protos = outputs["protos"].try_extract_array::<f32>()?.to_owned();
@@ -117,22 +120,54 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
         });
     }
 
-    c.bench_function("predict_full_seg", |b| {
+    c.bench_function("predict_full_pf_seg", |b| {
         b.iter(|| {
-            seg_predictor
+            pf_seg_predictor
                 .predict(black_box(&img))
                 .call()
                 .expect("Predict failed");
         });
     });
 
-    // --- DETECTION MODEL BENCHMARK ---
-    let mut det_predictor = PromptFreeDetector::builder(det_model_path, vocab_path).build()?;
+    // --- PROMPT-FREE DETECTION MODEL BENCHMARK ---
+    let mut pf_det_predictor =
+        PromptFreeDetector::builder(pf_det_model_path, vocab_path).build()?;
 
-    c.bench_function("predict_full_det", |b| {
+    c.bench_function("predict_full_pf_det", |b| {
         b.iter(|| {
-            det_predictor
+            pf_det_predictor
                 .predict(black_box(&img))
+                .call()
+                .expect("Predict failed");
+        });
+    });
+
+    // --- PROMPTABLE SEGMENTATION MODEL BENCHMARKS ---
+    // TextEmbedder cannot be cloned, so we initialize two (or one per detector)
+    let embedder_seg = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
+        .build()
+        .await?;
+    let mut prompt_seg_predictor =
+        PromptableDetector::builder(prompt_seg_model_path, embedder_seg).build()?;
+    c.bench_function("predict_full_promptable_seg", |b| {
+        b.iter(|| {
+            prompt_seg_predictor
+                .predict(black_box(&img), black_box(&labels))
+                .call()
+                .expect("Predict failed");
+        });
+    });
+
+    // --- PROMPTABLE DETECTION MODEL BENCHMARKS ---
+    let embedder_det = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
+        .build()
+        .await?;
+    let mut prompt_det_predictor =
+        PromptableDetector::builder(prompt_det_model_path, embedder_det).build()?;
+    c.bench_function("predict_full_promptable_det", |b| {
+        b.iter(|| {
+            prompt_det_predictor
+                .predict(black_box(&img), black_box(&labels))
                 .call()
                 .expect("Predict failed");
         });
@@ -142,7 +177,12 @@ fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
 }
 
 fn benchmark_wrapper(c: &mut Criterion) {
-    benchmark_predict_components(c).unwrap();
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create Tokio runtime");
+
+    runtime.block_on(benchmark_predict_components(c)).unwrap();
 }
 
 criterion_group!(benches, benchmark_wrapper);

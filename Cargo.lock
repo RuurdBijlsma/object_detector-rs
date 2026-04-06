@@ -2171,9 +2171,9 @@ checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 
 [[package]]
 name = "open_clip_inference"
-version = "0.3.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "400060994684bb598d92d78699dcdc46505e624aff4a691f9362c21b966baa44"
+checksum = "7e2bf7b2289a054a68db6fc4c0647ef35ecb960266047076801e2895688b4b8f"
 dependencies = [
  "bon",
  "fast_image_resize",

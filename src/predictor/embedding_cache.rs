@@ -12,6 +12,12 @@ pub struct EmbeddingCache {
     cache: RwLock<HashMap<PathBuf, HashMap<String, Array1<f32>>>>,
 }
 
+impl Clone for EmbeddingCache {
+    fn clone(&self) -> Self {
+        Self::new()
+    }
+}
+
 impl EmbeddingCache {
     #[must_use]
     pub fn new() -> Self {
@@ -32,9 +38,10 @@ impl EmbeddingCache {
                 .read()
                 .map_err(|e| ObjectDetectorError::Ort(e.to_string()))?;
             if let Some(model_cache) = read_guard.get(&model_key)
-                && labels.iter().all(|l| model_cache.contains_key(*l)) {
-                    return Self::assemble_from_cache(labels, model_cache);
-                }
+                && labels.iter().all(|l| model_cache.contains_key(*l))
+            {
+                return Self::assemble_from_cache(labels, model_cache);
+            }
         }
 
         // Determine what needs to be embedded
