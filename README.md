@@ -1,10 +1,12 @@
 # object_detector
 
-Powerful, easy-to-use object detection and instance segmentation in Rust, powered by ONNX Runtime and the YOLOE-26
+Easy-to-use object detection and instance segmentation in Rust, powered by ONNX Runtime and the YOLOE-26
 (Real-Time Seeing Anything) model family.
 
 [![Crates.io](https://img.shields.io/crates/v/object_detector.svg)](https://crates.io/crates/object_detector)
 [![Documentation](https://docs.rs/object_detector/badge.svg)](https://docs.rs/object_detector)
+
+![img_market.jpg](.github/img_market.jpg)
 
 `object_detector` allows you to detect and segment virtually any object in an image. It supports two main modes:
 **Promptable** (where you describe what to find in text) and **Prompt-Free** (where it uses a built-in vocabulary
@@ -253,4 +255,16 @@ from [GitHub Releases](http://github.com/microsoft/onnxruntime/releases).
 
 Then put the dll/so/dylib location in your `PATH`, or point the `ORT_DYLIB_PATH` env var to it.
 
-![img_cat.png](.github/img_cat.png)
+## Output samples
+
+### Car park - no masks - prompted ["car"]
+
+![parking_lot.jpg](.github/parking_lot.jpg)
+
+### StreetView - with mask - prompt free
+
+![streetview.jpg](.github/streetview.jpg)
+
+### Cat - with mask - prompted ["cat"]
+
+![img_cat.jpg](.github/img_cat.jpg)
