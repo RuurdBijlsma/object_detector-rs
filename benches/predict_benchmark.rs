@@ -10,7 +10,11 @@ use ort::value::Value;
 use std::hint::black_box;
 
 #[allow(clippy::too_many_lines)]
-async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
+fn benchmark_predict_components(
+    c: &mut Criterion,
+    embedder_seg: TextEmbedder,
+    embedder_det: TextEmbedder,
+) -> Result<()> {
     // Model Paths
     let pf_seg_model_path = "assets/model/prompt_free/yoloe-26l-seg-pf.onnx";
     let pf_det_model_path = "assets/model/prompt_free/yoloe-26l-det-pf.onnx";
@@ -23,8 +27,7 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     let labels = ["lamp", "person", "bottle", "shelf"];
 
     // --- PROMPT-FREE SEGMENTATION MODEL BENCHMARKS ---
-    let pf_seg_predictor =
-        PromptFreeDetector::builder(pf_seg_model_path, vocab_path).build()?;
+    let pf_seg_predictor = PromptFreeDetector::builder(pf_seg_model_path, vocab_path).build()?;
 
     c.bench_function("preprocess", |b| {
         b.iter(|| {
@@ -131,8 +134,7 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     });
 
     // --- PROMPT-FREE DETECTION MODEL BENCHMARK ---
-    let pf_det_predictor =
-        PromptFreeDetector::builder(pf_det_model_path, vocab_path).build()?;
+    let pf_det_predictor = PromptFreeDetector::builder(pf_det_model_path, vocab_path).build()?;
 
     c.bench_function("predict_full_pf_det", |b| {
         b.iter(|| {
@@ -144,10 +146,6 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     });
 
     // --- PROMPTABLE SEGMENTATION MODEL BENCHMARKS ---
-    // TextEmbedder cannot be cloned, so we initialize two (or one per detector)
-    let embedder_seg = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
-        .build()
-        .await?;
     let prompt_seg_predictor =
         PromptableDetector::builder(prompt_seg_model_path, embedder_seg).build()?;
     c.bench_function("predict_full_promptable_seg", |b| {
@@ -160,9 +158,6 @@ async fn benchmark_predict_components(c: &mut Criterion) -> Result<()> {
     });
 
     // --- PROMPTABLE DETECTION MODEL BENCHMARKS ---
-    let embedder_det = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
-        .build()
-        .await?;
     let prompt_det_predictor =
         PromptableDetector::builder(prompt_det_model_path, embedder_det).build()?;
     c.bench_function("predict_full_promptable_det", |b| {
@@ -183,7 +178,21 @@ fn benchmark_wrapper(c: &mut Criterion) {
         .build()
         .expect("Failed to create Tokio runtime");
 
-    runtime.block_on(benchmark_predict_components(c)).unwrap();
+    // Perform async setup here
+    let (embedder_seg, embedder_det) = runtime.block_on(async {
+        let seg = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
+            .build()
+            .await
+            .expect("Failed to build seg embedder");
+        let det = TextEmbedder::from_hf("RuteNL/MobileCLIP2-B-OpenCLIP-ONNX")
+            .build()
+            .await
+            .expect("Failed to build det embedder");
+        (seg, det)
+    });
+
+    // Call the synchronous benchmark function
+    benchmark_predict_components(c, embedder_seg, embedder_det).unwrap();
 }
 
 criterion_group!(benches, benchmark_wrapper);
