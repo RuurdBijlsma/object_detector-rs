@@ -9,9 +9,9 @@ fn benchmark_full(c: &mut Criterion) {
         .build()
         .expect("Failed to create Tokio runtime");
 
-    let img_path = "assets/img/market.jpg";
+    let img_path = "assets/img/van.jpg";
     let img = image::open(img_path).expect("Failed to open benchmark image.");
-    let labels = ["lamp", "person", "watermelon", "cat", "keyboard", "car"];
+    let labels = ["van"];
 
     let scales = [
         ModelScale::Nano,

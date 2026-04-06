@@ -17,6 +17,7 @@ dependencies = [
     "clip",
     "onnxruntime>=1.24.4",
     "numpy>=2.4.4",
+    "matplotlib>=3.10.8",
 ]
 
 [tool.uv.sources]
