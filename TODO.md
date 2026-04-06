@@ -34,6 +34,8 @@
 * uv script voor export_onnx package versies pinnen (ook git clip)
 * video support/helpers?
 * maak promptable een feature, alleen open_clip_embedder binnenhalen als ie enabled is
+* haal mut self uit objectdetector
+* regression test broke at some point?
 
 
 benchmark results:

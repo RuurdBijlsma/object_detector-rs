@@ -19,13 +19,6 @@ async fn main() -> Result<()> {
     let labels = [
         "lamp",
         "person",
-        "watermelon",
-        "cat",
-        "keyboard",
-        "sausage",
-        "jar",
-        "car",
-        "van",
     ];
 
     let config_specs = [
