@@ -1,7 +1,7 @@
 [package]
 name = "object_detector"
 description = "Object detection using ORT and the yoloe-26-seg model. This model can detect multiple objects per image, each having a tag, pixel-level mask, and a boundingbox. It's pretrained, it has a vocabulary of 4000+ objects. "
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 license = "AGPL-3.0"
 homepage = "https://github.com/RuurdBijlsma/object_detector-rs"
@@ -12,7 +12,7 @@ exclude = ["assets", ".github", "TODO.md", "justfile", "output", "py-yolo"]
 [dependencies]
 ort = { version = "2.0.0-rc.12", features = ["ndarray"] }
 ndarray = "0.17.2"
-image = "0.25.10"
+image = { version = "0.25.10", default-features = false }
 serde_json = "1.0.149"
 num_cpus = "1.17.0"
 rayon = "1.11.0"
@@ -20,7 +20,7 @@ thiserror = "2.0.18"
 bon = "3.9.1"
 serde = { version = "1.0.228", optional = true, features = ["derive"] }
 hf-hub = { version = "0.5.0", features = ["tokio"], optional = true }
-open_clip_inference = { version = "0.4.0" }
+open_clip_inference = { version = "0.4.0", optional = true }
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }
@@ -31,33 +31,34 @@ tokio = { version = "1.51", features = ["full"] }
 color-eyre = "0.6.5"
 
 [features]
-default = ["download-binaries", "copy-dylibs", "hf-hub", "serde"]
+default = ["download-binaries", "copy-dylibs", "hf-hub", "serde", "promptable"]
 serde = ["dep:serde"]
 hf-hub = ["dep:hf-hub"] # -> Enable downloading models from HuggingFace, relies on `tokio`
+promptable = ["dep:open_clip_inference"]
 # ort forwarded
-download-binaries = ["ort/download-binaries", "open_clip_inference/download-binaries"]
-copy-dylibs = ["ort/copy-dylibs", "open_clip_inference/copy-dylibs"]
-load-dynamic = ["ort/load-dynamic", "open_clip_inference/load-dynamic"]
+download-binaries = ["ort/download-binaries", "open_clip_inference?/download-binaries"]
+copy-dylibs = ["ort/copy-dylibs", "open_clip_inference?/copy-dylibs"]
+load-dynamic = ["ort/load-dynamic", "open_clip_inference?/load-dynamic"]
 # ort execution providers
-cuda = ["ort/cuda", "open_clip_inference/cuda"]
-tensorrt = ["ort/tensorrt", "open_clip_inference/tensorrt"]
-nvrtx = ["ort/nvrtx", "open_clip_inference/nvrtx"]
-xnnpack = ["ort/xnnpack", "open_clip_inference/xnnpack"]
-webgpu = ["ort/webgpu", "open_clip_inference/webgpu"]
-directml = ["ort/directml", "open_clip_inference/directml"]
-coreml = ["ort/coreml", "open_clip_inference/coreml"]
-migraphx = ["ort/migraphx", "open_clip_inference/migraphx"]
-openvino = ["ort/openvino", "open_clip_inference/openvino"]
-onednn = ["ort/onednn", "open_clip_inference/onednn"]
-qnn = ["ort/qnn", "open_clip_inference/qnn"]
-cann = ["ort/cann", "open_clip_inference/cann"]
-nnapi = ["ort/nnapi", "open_clip_inference/nnapi"]
-tvm = ["ort/tvm", "open_clip_inference/tvm"]
-acl = ["ort/acl", "open_clip_inference/acl"]
-armnn = ["ort/armnn", "open_clip_inference/armnn"]
-vitis = ["ort/vitis", "open_clip_inference/vitis"]
-rknpu = ["ort/rknpu", "open_clip_inference/rknpu"]
-azure = ["ort/azure", "open_clip_inference/azure"]
+cuda = ["ort/cuda", "open_clip_inference?/cuda"]
+tensorrt = ["ort/tensorrt", "open_clip_inference?/tensorrt"]
+nvrtx = ["ort/nvrtx", "open_clip_inference?/nvrtx"]
+xnnpack = ["ort/xnnpack", "open_clip_inference?/xnnpack"]
+webgpu = ["ort/webgpu", "open_clip_inference?/webgpu"]
+directml = ["ort/directml", "open_clip_inference?/directml"]
+coreml = ["ort/coreml", "open_clip_inference?/coreml"]
+migraphx = ["ort/migraphx", "open_clip_inference?/migraphx"]
+openvino = ["ort/openvino", "open_clip_inference?/openvino"]
+onednn = ["ort/onednn", "open_clip_inference?/onednn"]
+qnn = ["ort/qnn", "open_clip_inference?/qnn"]
+cann = ["ort/cann", "open_clip_inference?/cann"]
+nnapi = ["ort/nnapi", "open_clip_inference?/nnapi"]
+tvm = ["ort/tvm", "open_clip_inference?/tvm"]
+acl = ["ort/acl", "open_clip_inference?/acl"]
+armnn = ["ort/armnn", "open_clip_inference?/armnn"]
+vitis = ["ort/vitis", "open_clip_inference?/vitis"]
+rknpu = ["ort/rknpu", "open_clip_inference?/rknpu"]
+azure = ["ort/azure", "open_clip_inference?/azure"]
 
 [[bench]]
 name = "component_benchmarks"

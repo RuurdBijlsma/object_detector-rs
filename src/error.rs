@@ -20,6 +20,7 @@ pub enum ObjectDetectorError {
     #[error("NdArray Error: {0}")]
     NdArray(#[from] ndarray::ShapeError),
 
+    #[cfg(feature = "promptable")]
     #[error("Clip Error: {0}")]
     Clip(#[from] open_clip_inference::ClipError),
 

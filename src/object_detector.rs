@@ -1,6 +1,9 @@
 use crate::ObjectDetectorError;
+#[cfg(feature = "hf-hub")]
 use crate::model_manager::{HfModel, get_hf_model};
-use crate::predictor::{PromptFreeDetector, PromptableDetector};
+use crate::predictor::PromptFreeDetector;
+#[cfg(feature = "promptable")]
+use crate::predictor::PromptableDetector;
 use crate::structs::{DetectedObject, DetectorType, ModelScale};
 use bon::bon;
 use image::DynamicImage;
@@ -11,6 +14,7 @@ pub struct ObjectDetector {
 }
 
 enum ObjectDetectorInner {
+    #[cfg(feature = "promptable")]
     Promptable(Box<PromptableDetector>),
     PromptFree(PromptFreeDetector),
 }
@@ -40,6 +44,7 @@ impl ObjectDetector {
         get_hf_model(data_model).await?;
 
         let inner = match detector_type {
+            #[cfg(feature = "promptable")]
             DetectorType::Promptable => {
                 let text_embedder =
                     open_clip_inference::TextEmbedder::from_hf(&HfModel::default_clip_embedder())
@@ -62,6 +67,12 @@ impl ObjectDetector {
                     .build()?;
                 ObjectDetectorInner::PromptFree(detector)
             }
+            #[allow(unreachable_patterns)]
+            _ => {
+                return Err(ObjectDetectorError::InvalidModel(
+                    "Promptable detector is disabled".into(),
+                ));
+            }
         };
 
         Ok(Self { inner })
@@ -69,13 +80,14 @@ impl ObjectDetector {
 
     #[builder]
     pub fn predict(
-        &mut self,
+        &self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(default = &[])] labels: &[&str],
         #[builder(default = 0.3)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
     ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
-        match &mut self.inner {
+        match &self.inner {
+            #[cfg(feature = "promptable")]
             ObjectDetectorInner::Promptable(detector) => {
                 if labels.is_empty() {
                     return Err(ObjectDetectorError::InvalidModel(
@@ -100,6 +112,10 @@ impl ObjectDetector {
                     .intersection_over_union(intersection_over_union)
                     .call()
             }
+            #[allow(unreachable_patterns)]
+            _ => Err(ObjectDetectorError::InvalidModel(
+                "Promptable detector is disabled".into(),
+            )),
         }
     }
 }

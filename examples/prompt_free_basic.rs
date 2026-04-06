@@ -6,7 +6,7 @@ async fn main() -> color_eyre::Result<()> {
     let image_path = Path::new("assets/img/fridge.jpg");
     let img = image::open(image_path)?;
 
-    let mut detector = ObjectDetector::from_hf(DetectorType::PromptFree)
+    let detector = ObjectDetector::from_hf(DetectorType::PromptFree)
         .build()
         .await?;
     let results = detector.predict(&img).call()?;

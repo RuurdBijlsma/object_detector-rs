@@ -7,7 +7,7 @@ async fn main() -> color_eyre::Result<()> {
     let img = image::open(image_path)?;
     let labels = ["lamp", "person"];
 
-    let mut detector = ObjectDetector::from_hf(DetectorType::Promptable)
+    let detector = ObjectDetector::from_hf(DetectorType::Promptable)
         .build()
         .await?;
 

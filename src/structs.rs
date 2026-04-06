@@ -3,6 +3,7 @@ use ndarray::Array2;
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DetectorType {
+    #[cfg(feature = "promptable")]
     Promptable,
     PromptFree,
 }

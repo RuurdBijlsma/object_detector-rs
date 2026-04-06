@@ -1,6 +1,7 @@
 // Mutex lock drop can't be done earlier
 #![allow(clippy::significant_drop_tightening)]
 use crate::ObjectDetectorError;
+#[cfg(feature = "hf-hub")]
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::nms::non_maximum_suppression;
 use crate::predictor::processing::{Candidate, YoloEngine, finalize_detections, preprocess_image};
