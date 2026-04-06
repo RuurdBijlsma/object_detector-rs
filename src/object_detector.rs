@@ -69,13 +69,13 @@ impl ObjectDetector {
 
     #[builder]
     pub fn predict(
-        &mut self,
+        &self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(default = &[])] labels: &[&str],
         #[builder(default = 0.3)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
     ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
-        match &mut self.inner {
+        match &self.inner {
             ObjectDetectorInner::Promptable(detector) => {
                 if labels.is_empty() {
                     return Err(ObjectDetectorError::InvalidModel(

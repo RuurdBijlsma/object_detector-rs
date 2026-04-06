@@ -244,7 +244,7 @@ boxes for the same object.
 | `hf-hub` | **Yes** | Enable automatic model downloading from Hugging Face.   | `hf-hub`, `tokio` |
 | `serde`  | **Yes** | Enable `Serialize`/`Deserialize` for detection structs. | `serde`           |
 
-The main `ort` cargo features are also forwarded.
+The main `ort` Cargo features are also forwarded.
 
 * ORT Cargo features: https://ort.pyke.io/setup/cargo-features
 * ORT Execution providers: https://ort.pyke.io/perf/execution-providers
@@ -253,7 +253,7 @@ The main `ort` cargo features are also forwarded.
 
 ### Link error - ORT
 
-If a link error happens while building, this is probably due to ORT. You can try the `load-dynamic` cargo feature to
+If a link error happens while building, this is probably due to ORT. You can try the `load-dynamic` Cargo feature to
 resolve this. You'll need to point to an instance of the ONNXRuntime library on your system via an environment variable.
 See the next section for more info.
 

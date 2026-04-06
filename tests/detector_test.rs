@@ -4,7 +4,7 @@ use object_detector::{DetectorType, ModelScale, ObjectDetector};
 #[tokio::test]
 async fn test_object_detector_prompt_free() {
     // Nano scale to speed up download
-    let mut detector = ObjectDetector::from_hf(DetectorType::PromptFree)
+    let detector = ObjectDetector::from_hf(DetectorType::PromptFree)
         .scale(ModelScale::Nano)
         .include_mask(false)
         .build()
@@ -23,7 +23,7 @@ async fn test_object_detector_prompt_free() {
 #[tokio::test]
 async fn test_object_detector_promptable() {
     // Nano scale to speed up download
-    let mut detector = ObjectDetector::from_hf(DetectorType::Promptable)
+    let detector = ObjectDetector::from_hf(DetectorType::Promptable)
         .scale(ModelScale::Nano)
         .include_mask(false)
         .build()
@@ -43,7 +43,7 @@ async fn test_object_detector_promptable() {
 
 #[tokio::test]
 async fn test_object_detector_errors() {
-    let mut prompt_free_detector = ObjectDetector::from_hf(DetectorType::PromptFree)
+    let prompt_free_detector = ObjectDetector::from_hf(DetectorType::PromptFree)
         .scale(ModelScale::Nano)
         .include_mask(false)
         .build()
@@ -60,7 +60,7 @@ async fn test_object_detector_errors() {
         "Expected error when providing labels to PromptFree detector"
     );
 
-    let mut promptable_detector = ObjectDetector::from_hf(DetectorType::Promptable)
+    let promptable_detector = ObjectDetector::from_hf(DetectorType::Promptable)
         .scale(ModelScale::Nano)
         .include_mask(false)
         .build()

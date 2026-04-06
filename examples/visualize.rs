@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
         fs::create_dir_all(out_dir)?;
 
         println!("\n--- Initializing Detector: {dtype:?} (Scale: Large, Mask: {include_mask}) ---");
-        let mut detector = ObjectDetector::from_hf(dtype)
+        let detector = ObjectDetector::from_hf(dtype)
             .scale(ModelScale::XLarge)
             .include_mask(include_mask)
             .build()
@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
 
             let mut out_path = out_dir.join(file_name);
             out_path.set_extension("png");
-            visualize_results(&img, &results, &font, &out_path)?;
+            visualize_results(&img, &results, &font, &out_path);
             img_count += 1;
         }
 
@@ -84,7 +84,7 @@ fn visualize_results(
     results: &[DetectedObject],
     font: &FontVec,
     out_path: &Path,
-) -> Result<()> {
+) {
     let mut output_img = img.to_rgba8();
 
     for det in results {
@@ -138,7 +138,6 @@ fn visualize_results(
             break;
         }
     }
-    Ok(())
 }
 
 const fn get_color(class_id: usize) -> Rgba<u8> {

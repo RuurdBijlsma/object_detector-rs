@@ -33,7 +33,7 @@ fn benchmark_full(c: &mut Criterion) {
                 let task = if with_mask { "seg" } else { "det" };
                 let scale_str = format!("{scale:?}").to_lowercase();
 
-                let mut detector = runtime
+                let detector = runtime
                     .block_on(async {
                         ObjectDetector::from_hf(detector_type)
                             .with_execution_providers(&[CUDA::default().build().error_on_failure()])
