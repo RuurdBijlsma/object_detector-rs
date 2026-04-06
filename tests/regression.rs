@@ -31,7 +31,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_model_consistency() -> Result<()> {
-        let mut predictor = PromptFreeDetector::from_hf().build().await?;
+        let predictor = PromptFreeDetector::from_hf().build().await?;
 
         let data = fs::read_to_string("assets/expected_outputs.json")?;
         let expected_map: BTreeMap<String, Vec<ExpectedDetection>> = serde_json::from_str(&data)?;
@@ -57,7 +57,7 @@ mod tests {
             {
                 let det_id = format!("{img_name}#{} ({})", i, expected.tag);
 
-                // 1. Tag
+                // Tag
                 if actual.tag != expected.tag {
                     all_errors.push(format!(
                         "[{det_id}] Tag mismatch: {} != {}",
@@ -65,7 +65,7 @@ mod tests {
                     ));
                 }
 
-                // 2. Score
+                // Score
                 if (actual.score - expected.score).abs() > FLOAT_EPSILON {
                     all_errors.push(format!(
                         "[{det_id}] Score mismatch: {} != {}",
@@ -73,7 +73,7 @@ mod tests {
                     ));
                 }
 
-                // 3. Bounding Box
+                // Bounding Box
                 let (a, e) = (actual.bbox, expected.bbox);
                 if (a.x1 - e.x1).abs() > FLOAT_EPSILON {
                     all_errors.push(format!(
@@ -100,7 +100,7 @@ mod tests {
                     ));
                 }
 
-                // 4. Mask
+                // Mask
                 check_mask(
                     &det_id,
                     actual.mask.as_ref(),

@@ -29,6 +29,15 @@ pub enum ObjectDetectorError {
 
     #[error("Model Consistency Error: {0}")]
     InvalidModel(String),
+
+    #[error("Lock poison error: {0}")]
+    LockPoison(String),
+}
+
+impl<'a, T> From<std::sync::PoisonError<std::sync::MutexGuard<'a, T>>> for ObjectDetectorError {
+    fn from(err: std::sync::PoisonError<std::sync::MutexGuard<'a, T>>) -> Self {
+        Self::LockPoison(err.to_string())
+    }
 }
 
 impl<T> From<ort::Error<T>> for ObjectDetectorError {

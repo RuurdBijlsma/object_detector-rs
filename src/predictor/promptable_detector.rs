@@ -1,5 +1,8 @@
+// Mutex lock drop can't be done earlier
+#![allow(clippy::significant_drop_tightening)]
 use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
+use crate::predictor::EmbeddingCache;
 use crate::predictor::nms::non_maximum_suppression;
 use crate::predictor::processing::{Candidate, YoloEngine, finalize_detections, preprocess_image};
 use crate::structs::{DetectedObject, ObjectBBox};
@@ -11,11 +14,13 @@ use ort::ep::ExecutionProviderDispatch;
 use ort::session::{Session, builder::GraphOptimizationLevel};
 use ort::value::Value;
 use std::path::Path;
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct PromptableDetector {
     engine: YoloEngine,
     pub text_embedder: TextEmbedder,
+    cache: EmbeddingCache,
 }
 
 #[bon]
@@ -54,34 +59,31 @@ impl PromptableDetector {
 
         Ok(Self {
             engine: YoloEngine {
-                session,
+                session: Mutex::new(session),
                 image_size: 640,
                 stride: 32,
             },
             text_embedder,
+            cache: EmbeddingCache::new(),
         })
     }
 
     #[builder]
     pub fn predict(
-        &mut self,
+        &self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(start_fn)] labels: &[&str],
-        #[builder(default = 0.15)] confidence_threshold: f32,
+        #[builder(default = 0.2)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
     ) -> Result<Vec<DetectedObject>, ObjectDetectorError> {
-        // 1. Generate Text Embeddings
-        let text_embs = self
-            .text_embedder
-            .embed_texts(labels)
-            .map_err(|e| ObjectDetectorError::Ort(format!("CLIP error: {e}")))?;
+        let text_embs = self.cache.get_or_embed(labels, &self.text_embedder)?;
         let text_tensor = text_embs.insert_axis(Axis(0)); // [1, N, 512]
 
-        // 2. Preprocess Image
         let (img_tensor, meta) = preprocess_image(img, self.engine.image_size, self.engine.stride);
 
-        // 3. Inference
-        let outputs = self.engine.session.run(ort::inputs![
+        // Inference
+        let mut session = self.engine.session.lock()?;
+        let outputs = session.run(ort::inputs![
             "images" => Value::from_array(img_tensor)?,
             "text_embeddings" => Value::from_array(text_tensor)?
         ])?;
@@ -105,7 +107,7 @@ impl PromptableDetector {
 
         let mut candidates = Vec::new();
 
-        // 4. Extract candidates
+        // Extract candidates
         for i in 0..preds_2d.shape()[0] {
             let row = preds_2d.row(i);
             let scores = row.slice(s![4..4 + num_classes]);
@@ -141,7 +143,7 @@ impl PromptableDetector {
             }
         }
 
-        // 5. NMS
+        // NMS
         let bboxes: Vec<_> = candidates.iter().map(|c| c.bbox).collect();
         let scores: Vec<_> = candidates.iter().map(|c| c.score).collect();
         let kept_indices = non_maximum_suppression(&bboxes, &scores, intersection_over_union);
@@ -157,7 +159,6 @@ impl PromptableDetector {
         // Convert slice labels to String for the shared finalizer
         let label_strings: Vec<String> = labels.iter().map(ToString::to_string).collect();
 
-        // 6. Use unified finalization logic (passing protos as Option)
         Ok(finalize_detections(
             kept_candidates,
             protos_view.as_ref(),

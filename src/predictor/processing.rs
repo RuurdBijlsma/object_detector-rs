@@ -3,6 +3,7 @@ use image::{DynamicImage, GenericImageView};
 use ndarray::{Array1, Array4, ArrayView3, Axis, s};
 use ort::session::Session;
 use rayon::prelude::*;
+use std::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct Candidate {
@@ -14,7 +15,7 @@ pub struct Candidate {
 
 #[derive(Debug)]
 pub struct YoloEngine {
-    pub session: Session,
+    pub session: Mutex<Session>,
     pub image_size: u32,
     pub stride: u32,
 }

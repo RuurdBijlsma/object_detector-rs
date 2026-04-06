@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     let img_dir = Path::new("assets/img");
     let font_path = Path::new("assets/Roboto-Regular.ttf");
     let font = FontVec::try_from_vec(fs::read(font_path)?)?;
-    let labels = ["lamp", "person"];
+    let labels = ["lamp", "person", "cat", "car"];
 
     let config_specs = [
         (DetectorType::PromptFree, true, "output/prompt_free_masked"),
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
 
         println!("\n--- Initializing Detector: {dtype:?} (Scale: Large, Mask: {include_mask}) ---");
         let mut detector = ObjectDetector::from_hf(dtype)
-            .scale(ModelScale::Large)
+            .scale(ModelScale::XLarge)
             .include_mask(include_mask)
             .build()
             .await?;
@@ -51,8 +51,14 @@ async fn main() -> Result<()> {
             let file_name = path.file_name().unwrap();
 
             let results = match dtype {
-                DetectorType::PromptFree => detector.predict(&img).call()?,
-                DetectorType::Promptable => detector.predict(&img).labels(&labels).call()?,
+                DetectorType::PromptFree => {
+                    detector.predict(&img).confidence_threshold(0.4).call()?
+                }
+                DetectorType::Promptable => detector
+                    .predict(&img)
+                    .confidence_threshold(0.15)
+                    .labels(&labels)
+                    .call()?,
             };
 
             let mut out_path = out_dir.join(file_name);
@@ -124,7 +130,14 @@ fn visualize_results(
         );
     }
 
-    output_img.save(out_path)?;
+    let mut out_p = out_path.to_string_lossy().to_string();
+    loop {
+        if output_img.save(out_p.clone()).is_err() {
+            out_p = format!("{out_p}.png");
+        } else {
+            break;
+        }
+    }
     Ok(())
 }
 

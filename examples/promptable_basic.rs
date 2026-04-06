@@ -1,11 +1,8 @@
-use color_eyre::Result;
 use object_detector::{DetectorType, ObjectDetector};
 use std::path::Path;
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    color_eyre::install()?;
-
+async fn main() -> color_eyre::Result<()> {
     let image_path = Path::new("assets/img/market.jpg");
     let img = image::open(image_path)?;
     let labels = ["lamp", "person"];

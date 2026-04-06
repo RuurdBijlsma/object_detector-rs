@@ -1,3 +1,5 @@
+// Mutex lock drop can't be done earlier
+#![allow(clippy::significant_drop_tightening)]
 use crate::ObjectDetectorError;
 use crate::model_manager::{HfModel, get_hf_model};
 use crate::predictor::nms::non_maximum_suppression;
@@ -9,6 +11,7 @@ use ndarray::{Array1, s};
 use ort::ep::ExecutionProviderDispatch;
 use ort::session::{Session, builder::GraphOptimizationLevel};
 use ort::value::Value;
+use std::sync::Mutex;
 use std::{fs, path::Path};
 
 #[derive(Debug)]
@@ -54,7 +57,7 @@ impl PromptFreeDetector {
 
         Ok(Self {
             engine: YoloEngine {
-                session,
+                session: Mutex::new(session),
                 image_size: 640,
                 stride: 32,
             },
@@ -64,7 +67,7 @@ impl PromptFreeDetector {
 
     #[builder]
     pub fn predict(
-        &mut self,
+        &self,
         #[builder(start_fn)] img: &DynamicImage,
         #[builder(default = 0.4)] confidence_threshold: f32,
         #[builder(default = 0.7)] intersection_over_union: f32,
@@ -72,10 +75,8 @@ impl PromptFreeDetector {
         let (input_tensor, meta) =
             preprocess_image(img, self.engine.image_size, self.engine.stride);
 
-        let outputs = self
-            .engine
-            .session
-            .run(ort::inputs!["images" => Value::from_array(input_tensor)?])?;
+        let mut session = self.engine.session.lock()?;
+        let outputs = session.run(ort::inputs!["images" => Value::from_array(input_tensor)?])?;
 
         let preds = outputs["detections"].try_extract_array::<f32>()?;
         let protos = outputs
@@ -89,7 +90,7 @@ impl PromptFreeDetector {
         // Seg models have 38 columns (4 box + 1 score + 1 class + 32 weights)
         let has_masks = protos.is_some() && preds_view.shape()[1] >= 38;
 
-        // 1. Extract candidates
+        // Extract candidates
         let mut candidates = Vec::new();
         for i in 0..preds_view.shape()[0] {
             let score = preds_view[[i, 4]];
@@ -114,7 +115,7 @@ impl PromptFreeDetector {
             }
         }
 
-        // 2. Run Non-Maximum Suppression
+        // Run Non-Maximum Suppression
         let bboxes: Vec<_> = candidates.iter().map(|c| c.bbox).collect();
         let scores: Vec<_> = candidates.iter().map(|c| c.score).collect();
         let kept_indices = non_maximum_suppression(&bboxes, &scores, intersection_over_union);
@@ -124,7 +125,7 @@ impl PromptFreeDetector {
             .map(|idx| candidates[idx].clone())
             .collect();
 
-        // 3. Finalize detections
+        // Finalize detections
         let protos_view = protos.as_ref().map(|p| p.slice(s![0, .., .., ..]));
 
         Ok(finalize_detections(

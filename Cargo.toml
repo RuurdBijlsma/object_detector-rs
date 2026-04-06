@@ -1,7 +1,7 @@
 [package]
 name = "object_detector"
 description = "Object detection using ORT and the yoloe-26-seg model. This model can detect multiple objects per image, each having a tag, pixel-level mask, and a boundingbox. It's pretrained, it has a vocabulary of 4000+ objects. "
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 license = "AGPL-3.0"
 homepage = "https://github.com/RuurdBijlsma/object_detector-rs"
@@ -17,17 +17,17 @@ serde_json = "1.0.149"
 num_cpus = "1.17.0"
 rayon = "1.11.0"
 thiserror = "2.0.18"
+bon = "3.9.1"
 serde = { version = "1.0.228", optional = true, features = ["derive"] }
 hf-hub = { version = "0.5.0", features = ["tokio"], optional = true }
-bon = "3.9.1"
-open_clip_inference = { version = "0.3.0" }
+open_clip_inference = { version = "0.4.0" }
 
 [dev-dependencies]
-serde = { version = "1.0", features = ["derive"] }
 criterion = { version = "0.8.2", features = ["html_reports"] }
+serde = { version = "1.0", features = ["derive"] }
 imageproc = "0.26.1"
 ab_glyph = "0.2"
-tokio = { version = "1.50", features = ["full"] }
+tokio = { version = "1.51", features = ["full"] }
 color-eyre = "0.6.5"
 
 [features]
@@ -35,30 +35,34 @@ default = ["download-binaries", "copy-dylibs", "hf-hub", "serde"]
 serde = ["dep:serde"]
 hf-hub = ["dep:hf-hub"] # -> Enable downloading models from HuggingFace, relies on `tokio`
 # ort forwarded
-download-binaries = ["ort/download-binaries"]
-copy-dylibs = ["ort/copy-dylibs"]
+download-binaries = ["ort/download-binaries", "open_clip_inference/download-binaries"]
+copy-dylibs = ["ort/copy-dylibs", "open_clip_inference/copy-dylibs"]
 load-dynamic = ["ort/load-dynamic", "open_clip_inference/load-dynamic"]
 # ort execution providers
-cuda = ["ort/cuda"]
-tensorrt = ["ort/tensorrt"]
-nvrtx = ["ort/nvrtx"]
-xnnpack = ["ort/xnnpack"]
-webgpu = ["ort/webgpu"]
-directml = ["ort/directml"]
-coreml = ["ort/coreml"]
-migraphx = ["ort/migraphx"]
-openvino = ["ort/openvino"]
-onednn = ["ort/onednn"]
-qnn = ["ort/qnn"]
-cann = ["ort/cann"]
-nnapi = ["ort/nnapi"]
-tvm = ["ort/tvm"]
-acl = ["ort/acl"]
-armnn = ["ort/armnn"]
-vitis = ["ort/vitis"]
-rknpu = ["ort/rknpu"]
-azure = ["ort/azure"]
+cuda = ["ort/cuda", "open_clip_inference/cuda"]
+tensorrt = ["ort/tensorrt", "open_clip_inference/tensorrt"]
+nvrtx = ["ort/nvrtx", "open_clip_inference/nvrtx"]
+xnnpack = ["ort/xnnpack", "open_clip_inference/xnnpack"]
+webgpu = ["ort/webgpu", "open_clip_inference/webgpu"]
+directml = ["ort/directml", "open_clip_inference/directml"]
+coreml = ["ort/coreml", "open_clip_inference/coreml"]
+migraphx = ["ort/migraphx", "open_clip_inference/migraphx"]
+openvino = ["ort/openvino", "open_clip_inference/openvino"]
+onednn = ["ort/onednn", "open_clip_inference/onednn"]
+qnn = ["ort/qnn", "open_clip_inference/qnn"]
+cann = ["ort/cann", "open_clip_inference/cann"]
+nnapi = ["ort/nnapi", "open_clip_inference/nnapi"]
+tvm = ["ort/tvm", "open_clip_inference/tvm"]
+acl = ["ort/acl", "open_clip_inference/acl"]
+armnn = ["ort/armnn", "open_clip_inference/armnn"]
+vitis = ["ort/vitis", "open_clip_inference/vitis"]
+rknpu = ["ort/rknpu", "open_clip_inference/rknpu"]
+azure = ["ort/azure", "open_clip_inference/azure"]
 
 [[bench]]
-name = "predict_benchmark"
+name = "component_benchmarks"
+harness = false
+
+[[bench]]
+name = "full_benchmarks"
 harness = false
