@@ -1,3 +1,4 @@
+#![allow(clippy::significant_drop_tightening)]
 use crate::ObjectDetectorError;
 use ndarray::{Array1, Array2, Axis, stack};
 use open_clip_inference::TextEmbedder;
@@ -12,6 +13,7 @@ pub struct EmbeddingCache {
 }
 
 impl EmbeddingCache {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -23,17 +25,16 @@ impl EmbeddingCache {
     ) -> Result<Array2<f32>, ObjectDetectorError> {
         let model_key = embedder.model_dir.clone();
 
-        // Quick check for existing embeddings (Read Lock)
+        // Check for existing embeddings
         {
             let read_guard = self
                 .cache
                 .read()
                 .map_err(|e| ObjectDetectorError::Ort(e.to_string()))?;
-            if let Some(model_cache) = read_guard.get(&model_key) {
-                if labels.iter().all(|l| model_cache.contains_key(*l)) {
-                    return self.assemble_from_cache(labels, model_cache);
+            if let Some(model_cache) = read_guard.get(&model_key)
+                && labels.iter().all(|l| model_cache.contains_key(*l)) {
+                    return Self::assemble_from_cache(labels, model_cache);
                 }
-            }
         }
 
         // Determine what needs to be embedded
@@ -45,7 +46,7 @@ impl EmbeddingCache {
                 .map_err(|e| ObjectDetectorError::Ort(e.to_string()))?;
             let model_cache = read_guard.get(&model_key);
             for &label in labels {
-                if model_cache.map_or(true, |m| !m.contains_key(label)) {
+                if model_cache.is_none_or(|m| !m.contains_key(label)) {
                     missing_labels.push(label);
                 }
             }
@@ -57,7 +58,6 @@ impl EmbeddingCache {
                 .embed_texts(&missing_labels)
                 .map_err(|e| ObjectDetectorError::Ort(format!("CLIP error: {e}")))?;
 
-            // Update Cache
             let mut write_guard = self
                 .cache
                 .write()
@@ -78,11 +78,10 @@ impl EmbeddingCache {
             ObjectDetectorError::Ort("Cache inconsistency after update".to_string())
         })?;
 
-        self.assemble_from_cache(labels, model_cache)
+        Self::assemble_from_cache(labels, model_cache)
     }
 
     fn assemble_from_cache(
-        &self,
         labels: &[&str],
         model_cache: &HashMap<String, Array1<f32>>,
     ) -> Result<Array2<f32>, ObjectDetectorError> {
