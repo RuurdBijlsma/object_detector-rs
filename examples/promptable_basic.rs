@@ -8,6 +8,7 @@ async fn main() -> color_eyre::Result<()> {
     let labels = ["lamp", "person"];
 
     let detector = ObjectDetector::from_hf(DetectorType::Promptable)
+        .cache_dir(Path::new("MY_CACHE"))
         .build()
         .await?;
 

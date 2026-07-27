@@ -1,6 +1,8 @@
 use crate::ObjectDetectorError;
 use crate::structs::{DetectorType, ModelScale};
-use hf_hub::api::tokio::Api;
+#[cfg(feature = "hf-hub")]
+use hf_hub::{HFClient, split_id};
+use std::path::{Path, PathBuf};
 
 /// Details for fetching model files from `HuggingFace` Hub.
 pub struct HfModel {
@@ -101,8 +103,19 @@ impl HfModel {
 }
 
 /// Downloads a file from `HuggingFace` Hub using the provided configuration.
-pub async fn get_hf_model(model: HfModel) -> Result<std::path::PathBuf, ObjectDetectorError> {
-    let api = Api::new()?;
-    let repo = api.model(model.id);
-    Ok(repo.get(&model.file).await?)
+#[cfg(feature = "hf-hub")]
+pub async fn get_hf_model(
+    model: HfModel,
+    cache_dir: Option<&Path>,
+) -> Result<PathBuf, ObjectDetectorError> {
+    let client = match cache_dir {
+        Some(dir) => HFClient::builder().cache_dir(dir).build()?,
+        None => HFClient::new()?,
+    };
+
+    let (owner, name) = split_id(&model.id);
+    let repo = client.model(owner, name);
+    tracing::info!("Fetching {}...", &model.file);
+    let downloaded_file = repo.download_file().filename(&model.file).send().await?;
+    Ok(downloaded_file)
 }

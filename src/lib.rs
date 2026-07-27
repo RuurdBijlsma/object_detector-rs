@@ -227,9 +227,9 @@
 mod error;
 #[cfg(feature = "hf-hub")]
 pub mod model_manager;
-pub mod predictor;
 #[cfg(feature = "hf-hub")]
 mod object_detector;
+pub mod predictor;
 mod structs;
 
 pub use error::ObjectDetectorError;
