@@ -1,7 +1,7 @@
 [package]
 name = "object_detector"
 description = "Object detection using ORT and the yoloe-26-seg model. This model can detect multiple objects per image, each having a tag, pixel-level mask, and a boundingbox. It's pretrained, it has a vocabulary of 4000+ objects. "
-version = "0.5.0"
+version = "0.5.1"
 edition = "2024"
 license = "AGPL-3.0"
 homepage = "https://github.com/RuurdBijlsma/object_detector-rs"
@@ -13,27 +13,29 @@ exclude = ["assets", ".github", "TODO.md", "justfile", "output", "py-yolo"]
 ort = { version = "2.0.0-rc.12", features = ["ndarray"] }
 ndarray = "0.17.2"
 image = { version = "0.25.10", default-features = false }
-serde_json = "1.0.149"
+serde_json = "1.0.151"
 num_cpus = "1.17.0"
-rayon = "1.11.0"
-thiserror = "2.0.18"
-bon = "3.9.1"
-serde = { version = "1.0.228", optional = true, features = ["derive"] }
-hf-hub = { version = "0.5.0", features = ["tokio"], optional = true }
-open_clip_inference = { version = "0.4.0", optional = true }
+rayon = "1.12.0"
+thiserror = "2.0.19"
+bon = "3.9.3"
+serde = { version = "1.0.229", optional = true, features = ["derive"] }
+hf-hub = { version = "1.0.0", optional = true }
+open_clip_inference = { version = "0.4.1", optional = true }
+tracing = {version = "0.1.44", optional = true}
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }
-serde = { version = "1.0", features = ["derive"] }
-imageproc = "0.26.1"
-ab_glyph = "0.2"
-tokio = { version = "1.51", features = ["full"] }
+serde = { version = "1.0.229", features = ["derive"] }
+imageproc = "0.27.0"
+ab_glyph = "0.2.32"
+tokio = { version = "1.53.1", features = ["full"] }
 color-eyre = "0.6.5"
+tracing-subscriber = "0.3.23"
 
 [features]
 default = ["download-binaries", "copy-dylibs", "hf-hub", "serde", "promptable"]
 serde = ["dep:serde"]
-hf-hub = ["dep:hf-hub"] # -> Enable downloading models from HuggingFace, relies on `tokio`
+hf-hub = ["dep:hf-hub", "dep:tracing"] # -> Enable downloading models from HuggingFace, relies on `tokio`
 promptable = ["dep:open_clip_inference"]
 # ort forwarded
 download-binaries = ["ort/download-binaries", "open_clip_inference?/download-binaries"]

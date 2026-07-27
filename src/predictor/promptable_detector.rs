@@ -33,11 +33,13 @@ impl PromptableDetector {
         #[builder(default = HfModel::default_promptable())] model: HfModel,
         #[builder(default = HfModel::default_promptable_data())] data_model: HfModel,
         #[builder(default = HfModel::default_clip_embedder())] clip_hf_repo: String,
+        cache_dir: Option<&Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
     ) -> Result<Self, ObjectDetectorError> {
-        let model_path = get_hf_model(model).await?;
-        get_hf_model(data_model).await?;
+        let model_path = get_hf_model(model, cache_dir).await?;
+        get_hf_model(data_model, cache_dir).await?;
         let text_embedder = TextEmbedder::from_hf(&clip_hf_repo)
+            .maybe_cache_dir(cache_dir)
             .with_execution_providers(with_execution_providers)
             .build()
             .await?;

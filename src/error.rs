@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[cfg(feature = "hf-hub")]
-use hf_hub::api::tokio::ApiError;
+use hf_hub::HFError;
 
 #[derive(Error, Debug)]
 pub enum ObjectDetectorError {
@@ -48,8 +48,8 @@ impl<T> From<ort::Error<T>> for ObjectDetectorError {
 }
 
 #[cfg(feature = "hf-hub")]
-impl From<ApiError> for ObjectDetectorError {
-    fn from(value: ApiError) -> Self {
+impl From<HFError> for ObjectDetectorError {
+    fn from(value: HFError) -> Self {
         Self::HfHub(value.to_string())
     }
 }

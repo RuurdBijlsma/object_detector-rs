@@ -30,11 +30,12 @@ impl PromptFreeDetector {
         #[builder(default = HfModel::default_prompt_free())] model: HfModel,
         #[builder(default = HfModel::default_prompt_free_data())] data_model: HfModel,
         #[builder(default = HfModel::default_vocabulary())] vocab_model: HfModel,
+        cache_dir: Option<&Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
     ) -> Result<Self, ObjectDetectorError> {
-        let model_path = get_hf_model(model).await?;
-        get_hf_model(data_model).await?;
-        let vocab_path = get_hf_model(vocab_model).await?;
+        let model_path = get_hf_model(model, cache_dir).await?;
+        get_hf_model(data_model, cache_dir).await?;
+        let vocab_path = get_hf_model(vocab_model, cache_dir).await?;
 
         Self::builder(model_path, vocab_path)
             .with_execution_providers(with_execution_providers)

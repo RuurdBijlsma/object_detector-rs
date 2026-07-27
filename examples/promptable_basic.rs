@@ -1,13 +1,21 @@
 use object_detector::{DetectorType, ObjectDetector};
 use std::path::Path;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::new(
+            "info,ort=warn,xet_client=warn,xet_data=warn,xet_runtime=warn,xet=warn",
+        ))
+        .init();
+
     let image_path = Path::new("assets/img/market.jpg");
     let img = image::open(image_path)?;
     let labels = ["lamp", "person"];
 
     let detector = ObjectDetector::from_hf(DetectorType::Promptable)
+        .cache_dir(Path::new("MY_CACHE"))
         .build()
         .await?;
 

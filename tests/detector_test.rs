@@ -1,10 +1,12 @@
 use image::DynamicImage;
 use object_detector::{DetectorType, ModelScale, ObjectDetector};
+use std::path::Path;
 
 #[tokio::test]
 async fn test_object_detector_prompt_free() {
     // Nano scale to speed up download
     let detector = ObjectDetector::from_hf(DetectorType::PromptFree)
+        .cache_dir(Path::new("test-cache"))
         .scale(ModelScale::Nano)
         .include_mask(false)
         .build()
@@ -24,6 +26,7 @@ async fn test_object_detector_prompt_free() {
 async fn test_object_detector_promptable() {
     // Nano scale to speed up download
     let detector = ObjectDetector::from_hf(DetectorType::Promptable)
+        .cache_dir(Path::new("test-cache"))
         .scale(ModelScale::Nano)
         .include_mask(false)
         .build()
@@ -44,6 +47,7 @@ async fn test_object_detector_promptable() {
 #[tokio::test]
 async fn test_object_detector_errors() {
     let prompt_free_detector = ObjectDetector::from_hf(DetectorType::PromptFree)
+        .cache_dir(Path::new("test-cache"))
         .scale(ModelScale::Nano)
         .include_mask(false)
         .build()

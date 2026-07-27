@@ -8,6 +8,7 @@ use crate::structs::{DetectedObject, DetectorType, ModelScale};
 use bon::bon;
 use image::DynamicImage;
 use ort::ep::ExecutionProviderDispatch;
+use std::path::Path;
 
 pub struct ObjectDetector {
     inner: ObjectDetectorInner,
@@ -28,6 +29,7 @@ impl ObjectDetector {
         #[builder(start_fn)] detector_type: DetectorType,
         #[builder(default = ModelScale::Large)] scale: ModelScale,
         #[builder(default = true)] include_mask: bool,
+        cache_dir: Option<&Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
     ) -> Result<Self, ObjectDetectorError> {
         let model_path = HfModel::get_model_file_path(detector_type, scale, include_mask);
@@ -40,14 +42,15 @@ impl ObjectDetector {
             file: format!("{model_path}.data"),
         };
 
-        let model_path_local = get_hf_model(model).await?;
-        get_hf_model(data_model).await?;
+        let model_path_local = get_hf_model(model, cache_dir).await?;
+        get_hf_model(data_model, cache_dir).await?;
 
         let inner = match detector_type {
             #[cfg(feature = "promptable")]
             DetectorType::Promptable => {
                 let text_embedder =
                     open_clip_inference::TextEmbedder::from_hf(&HfModel::default_clip_embedder())
+                        .maybe_cache_dir(cache_dir)
                         .with_execution_providers(with_execution_providers)
                         .build()
                         .await
@@ -60,7 +63,7 @@ impl ObjectDetector {
             }
             DetectorType::PromptFree => {
                 let vocab_model = HfModel::default_vocabulary();
-                let vocab_path = get_hf_model(vocab_model).await?;
+                let vocab_path = get_hf_model(vocab_model, cache_dir).await?;
 
                 let detector = PromptFreeDetector::builder(model_path_local, vocab_path)
                     .with_execution_providers(with_execution_providers)
