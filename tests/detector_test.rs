@@ -1,6 +1,6 @@
-use std::path::Path;
 use image::DynamicImage;
 use object_detector::{DetectorType, ModelScale, ObjectDetector};
+use std::path::Path;
 
 #[tokio::test]
 async fn test_object_detector_prompt_free() {
