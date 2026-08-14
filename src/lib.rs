@@ -229,8 +229,11 @@ mod error;
 pub mod model_manager;
 #[cfg(feature = "hf-hub")]
 mod object_detector;
+pub mod onnx;
 pub mod predictor;
 mod structs;
+
+pub use ort::session::builder::GraphOptimizationLevel;
 
 pub use error::ObjectDetectorError;
 #[cfg(feature = "hf-hub")]
