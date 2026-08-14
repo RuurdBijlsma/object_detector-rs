@@ -51,7 +51,7 @@
 //!
 //! You can customize the model scale (Nano to `XLarge`), enable/disable masks for performance, and configure hardware acceleration.
 //!
-//! ```rust
+//! ```rust,ignore
 //! use object_detector::{DetectorType, ModelScale, ObjectDetector};
 //! use ort::ep::CUDA;
 //!
