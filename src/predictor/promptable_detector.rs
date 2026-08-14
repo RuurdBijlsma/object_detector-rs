@@ -3,6 +3,7 @@
 use crate::ObjectDetectorError;
 #[cfg(feature = "hf-hub")]
 use crate::model_manager::{HfModel, get_hf_model};
+use crate::onnx::OnnxSession;
 use crate::predictor::EmbeddingCache;
 use crate::predictor::nms::non_maximum_suppression;
 use crate::predictor::processing::{Candidate, YoloEngine, finalize_detections, preprocess_image};
@@ -12,7 +13,7 @@ use image::DynamicImage;
 use ndarray::{Array1, Axis, Ix2, s};
 use open_clip_inference::TextEmbedder;
 use ort::ep::ExecutionProviderDispatch;
-use ort::session::{Session, builder::GraphOptimizationLevel};
+use ort::session::builder::GraphOptimizationLevel;
 use ort::value::Value;
 use std::path::Path;
 use std::sync::Mutex;
@@ -35,16 +36,28 @@ impl PromptableDetector {
         #[builder(default = HfModel::default_clip_embedder())] clip_hf_repo: String,
         cache_dir: Option<&Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
+        with_intra_threads: Option<usize>,
+        with_inter_threads: Option<usize>,
+        with_memory_pattern: Option<bool>,
+        with_optimization_level: Option<GraphOptimizationLevel>,
     ) -> Result<Self, ObjectDetectorError> {
         let model_path = get_hf_model(model, cache_dir).await?;
         get_hf_model(data_model, cache_dir).await?;
         let text_embedder = TextEmbedder::from_hf(&clip_hf_repo)
             .maybe_cache_dir(cache_dir)
             .with_execution_providers(with_execution_providers)
+            .maybe_with_intra_threads(with_intra_threads)
+            .maybe_with_inter_threads(with_inter_threads)
+            .maybe_with_memory_pattern(with_memory_pattern)
+            .maybe_with_optimization_level(with_optimization_level)
             .build()
             .await?;
         Self::builder(model_path, text_embedder)
             .with_execution_providers(with_execution_providers)
+            .maybe_with_intra_threads(with_intra_threads)
+            .maybe_with_inter_threads(with_inter_threads)
+            .maybe_with_memory_pattern(with_memory_pattern)
+            .maybe_with_optimization_level(with_optimization_level)
             .build()
     }
 
@@ -53,16 +66,23 @@ impl PromptableDetector {
         #[builder(start_fn)] model_path: impl AsRef<Path>,
         #[builder(start_fn)] text_embedder: TextEmbedder,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
+        with_intra_threads: Option<usize>,
+        with_inter_threads: Option<usize>,
+        with_memory_pattern: Option<bool>,
+        with_optimization_level: Option<GraphOptimizationLevel>,
     ) -> Result<Self, ObjectDetectorError> {
-        let session = Session::builder()?
-            .with_execution_providers(with_execution_providers)?
-            .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(num_cpus::get())?
-            .commit_from_file(model_path)?;
+        let onnx = OnnxSession::new(
+            model_path,
+            with_execution_providers,
+            with_optimization_level,
+            with_intra_threads,
+            with_inter_threads,
+            with_memory_pattern,
+        )?;
 
         Ok(Self {
             engine: YoloEngine {
-                session: Mutex::new(session),
+                session: Mutex::new(onnx.session),
                 image_size: 640,
                 stride: 32,
             },

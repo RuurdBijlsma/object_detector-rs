@@ -8,6 +8,7 @@ use crate::structs::{DetectedObject, DetectorType, ModelScale};
 use bon::bon;
 use image::DynamicImage;
 use ort::ep::ExecutionProviderDispatch;
+use ort::session::builder::GraphOptimizationLevel;
 use std::path::Path;
 
 pub struct ObjectDetector {
@@ -31,6 +32,10 @@ impl ObjectDetector {
         #[builder(default = true)] include_mask: bool,
         cache_dir: Option<&Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
+        with_intra_threads: Option<usize>,
+        with_inter_threads: Option<usize>,
+        with_memory_pattern: Option<bool>,
+        with_optimization_level: Option<GraphOptimizationLevel>,
     ) -> Result<Self, ObjectDetectorError> {
         let model_path = HfModel::get_model_file_path(detector_type, scale, include_mask);
         let model = HfModel {
@@ -52,12 +57,20 @@ impl ObjectDetector {
                     open_clip_inference::TextEmbedder::from_hf(&HfModel::default_clip_embedder())
                         .maybe_cache_dir(cache_dir)
                         .with_execution_providers(with_execution_providers)
+                        .maybe_with_intra_threads(with_intra_threads)
+                        .maybe_with_inter_threads(with_inter_threads)
+                        .maybe_with_memory_pattern(with_memory_pattern)
+                        .maybe_with_optimization_level(with_optimization_level)
                         .build()
                         .await
                         .map_err(|e| ObjectDetectorError::Ort(format!("CLIP error: {e}")))?;
 
                 let detector = PromptableDetector::builder(model_path_local, text_embedder)
                     .with_execution_providers(with_execution_providers)
+                    .maybe_with_intra_threads(with_intra_threads)
+                    .maybe_with_inter_threads(with_inter_threads)
+                    .maybe_with_memory_pattern(with_memory_pattern)
+                    .maybe_with_optimization_level(with_optimization_level)
                     .build()?;
                 ObjectDetectorInner::Promptable(Box::new(detector))
             }
@@ -67,6 +80,10 @@ impl ObjectDetector {
 
                 let detector = PromptFreeDetector::builder(model_path_local, vocab_path)
                     .with_execution_providers(with_execution_providers)
+                    .maybe_with_intra_threads(with_intra_threads)
+                    .maybe_with_inter_threads(with_inter_threads)
+                    .maybe_with_memory_pattern(with_memory_pattern)
+                    .maybe_with_optimization_level(with_optimization_level)
                     .build()?;
                 ObjectDetectorInner::PromptFree(detector)
             }

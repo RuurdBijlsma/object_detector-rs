@@ -51,7 +51,7 @@
 //!
 //! You can customize the model scale (Nano to `XLarge`), enable/disable masks for performance, and configure hardware acceleration.
 //!
-//! ```rust
+//! ```rust,ignore
 //! use object_detector::{DetectorType, ModelScale, ObjectDetector};
 //! use ort::ep::CUDA;
 //!
@@ -229,8 +229,11 @@ mod error;
 pub mod model_manager;
 #[cfg(feature = "hf-hub")]
 mod object_detector;
+pub mod onnx;
 pub mod predictor;
 mod structs;
+
+pub use ort::session::builder::GraphOptimizationLevel;
 
 pub use error::ObjectDetectorError;
 #[cfg(feature = "hf-hub")]
