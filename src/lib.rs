@@ -182,6 +182,10 @@
 //!
 //! The main `ort` Cargo features are also forwarded.
 //!
+//! Detector builders accept `.with_environment(&environment)` to share an ORT environment with your application or
+//! another model crate. If omitted, `object_detector` creates and reuses its own default environment. The combined
+//! promptable detector passes the same environment to its text and detector sessions.
+//!
 //! * ORT Cargo features: <https://ort.pyke.io/setup/cargo-features>
 //! * ORT Execution providers: <https://ort.pyke.io/perf/execution-providers>
 //!
