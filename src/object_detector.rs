@@ -1,12 +1,14 @@
 use crate::ObjectDetectorError;
 #[cfg(feature = "hf-hub")]
 use crate::model_manager::{HfModel, get_hf_model};
+use crate::onnx::get_environment;
 use crate::predictor::PromptFreeDetector;
 #[cfg(feature = "promptable")]
 use crate::predictor::PromptableDetector;
 use crate::structs::{DetectedObject, DetectorType, ModelScale};
 use bon::bon;
 use image::DynamicImage;
+use ort::environment::Environment;
 use ort::ep::ExecutionProviderDispatch;
 use ort::session::builder::GraphOptimizationLevel;
 use std::path::Path;
@@ -32,6 +34,7 @@ impl ObjectDetector {
         #[builder(default = true)] include_mask: bool,
         cache_dir: Option<&Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
+        with_environment: Option<&Environment>,
         with_intra_threads: Option<usize>,
         with_inter_threads: Option<usize>,
         with_memory_pattern: Option<bool>,
@@ -49,6 +52,7 @@ impl ObjectDetector {
 
         let model_path_local = get_hf_model(model, cache_dir).await?;
         get_hf_model(data_model, cache_dir).await?;
+        let environment = get_environment(with_environment)?;
 
         let inner = match detector_type {
             #[cfg(feature = "promptable")]
@@ -57,6 +61,7 @@ impl ObjectDetector {
                     open_clip_inference::TextEmbedder::from_hf(&HfModel::default_clip_embedder())
                         .maybe_cache_dir(cache_dir)
                         .with_execution_providers(with_execution_providers)
+                        .with_environment(&environment)
                         .maybe_with_intra_threads(with_intra_threads)
                         .maybe_with_inter_threads(with_inter_threads)
                         .maybe_with_memory_pattern(with_memory_pattern)
@@ -67,6 +72,7 @@ impl ObjectDetector {
 
                 let detector = PromptableDetector::builder(model_path_local, text_embedder)
                     .with_execution_providers(with_execution_providers)
+                    .with_environment(&environment)
                     .maybe_with_intra_threads(with_intra_threads)
                     .maybe_with_inter_threads(with_inter_threads)
                     .maybe_with_memory_pattern(with_memory_pattern)
@@ -80,6 +86,7 @@ impl ObjectDetector {
 
                 let detector = PromptFreeDetector::builder(model_path_local, vocab_path)
                     .with_execution_providers(with_execution_providers)
+                    .with_environment(&environment)
                     .maybe_with_intra_threads(with_intra_threads)
                     .maybe_with_inter_threads(with_inter_threads)
                     .maybe_with_memory_pattern(with_memory_pattern)

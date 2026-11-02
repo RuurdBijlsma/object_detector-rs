@@ -10,6 +10,7 @@ use crate::structs::{DetectedObject, ObjectBBox};
 use bon::bon;
 use image::DynamicImage;
 use ndarray::{Array1, s};
+use ort::environment::Environment;
 use ort::ep::ExecutionProviderDispatch;
 use ort::session::builder::GraphOptimizationLevel;
 use ort::value::Value;
@@ -33,6 +34,7 @@ impl PromptFreeDetector {
         #[builder(default = HfModel::default_vocabulary())] vocab_model: HfModel,
         cache_dir: Option<&Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
+        with_environment: Option<&Environment>,
         with_intra_threads: Option<usize>,
         with_inter_threads: Option<usize>,
         with_memory_pattern: Option<bool>,
@@ -44,6 +46,7 @@ impl PromptFreeDetector {
 
         Self::builder(model_path, vocab_path)
             .with_execution_providers(with_execution_providers)
+            .maybe_with_environment(with_environment)
             .maybe_with_intra_threads(with_intra_threads)
             .maybe_with_inter_threads(with_inter_threads)
             .maybe_with_memory_pattern(with_memory_pattern)
@@ -57,6 +60,7 @@ impl PromptFreeDetector {
         #[builder(start_fn)] model_path: impl AsRef<Path>,
         #[builder(start_fn)] vocab_path: impl AsRef<Path>,
         #[builder(default = &[])] with_execution_providers: &[ExecutionProviderDispatch],
+        with_environment: Option<&Environment>,
         with_intra_threads: Option<usize>,
         with_inter_threads: Option<usize>,
         with_memory_pattern: Option<bool>,
@@ -69,6 +73,7 @@ impl PromptFreeDetector {
             with_intra_threads,
             with_inter_threads,
             with_memory_pattern,
+            with_environment,
         )?;
 
         let vocabulary: Vec<String> = serde_json::from_str(&fs::read_to_string(vocab_path)?)?;
