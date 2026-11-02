@@ -10,13 +10,13 @@ documentation = "https://docs.rs/object_detector"
 exclude = ["assets", ".github", "TODO.md", "justfile", "output", "py-yolo"]
 
 [dependencies]
-ort = { version = "2.0.0-rc.13", features = ["ndarray"] }
+ort = { version = "2.0.0-rc.15", features = ["ndarray"] }
 ndarray = "0.17.2"
 image = { version = "0.25.10", default-features = false }
-serde_json = "1.0.151"
+serde_json = "1.0.154"
 rayon = "1.12.0"
-thiserror = "2.0.19"
-bon = "3.9.3"
+thiserror = "2.0.21"
+bon = "3.10.3"
 serde = { version = "1.0.229", optional = true, features = ["derive"] }
 hf-hub = { version = "1.0.0", optional = true }
 open_clip_inference = { version = "0.4.2", optional = true }
@@ -27,7 +27,7 @@ criterion = { version = "0.8.2", features = ["html_reports"] }
 serde = { version = "1.0.229", features = ["derive"] }
 imageproc = "0.27.0"
 ab_glyph = "0.2.32"
-tokio = { version = "1.53.1", features = ["full"] }
+tokio = { version = "1.54.1", features = ["full"] }
 color-eyre = "0.6.5"
 tracing-subscriber = "0.3.23"
 
